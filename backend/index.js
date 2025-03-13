@@ -21,15 +21,23 @@ const db = new pg.Client({
 db.connect();
 let books = [];
 const getBooks = async () => {
-
   const result = await db.query("SELECT * FROM books ORDER BY id ASC");
   // console.log(result.rows);
   return result.rows;
 };
-const getCover = (keyType,key) => {
+const getCover = (keyType, key) => {
   return `https://covers.openlibrary.org/b/${keyType}/${key}-M.jpg`;
-}
+};
+
 app.get("/", async (req, res) => {
+  try {
+    res.send("hello");
+  } catch (error) {
+    console.error("some bug");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+app.get("/dashboard", async (req, res) => {
   try {
     books = await getBooks();
     console.log(books);
@@ -39,12 +47,15 @@ app.get("/", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-app.get("/getData/:id", async (req,res) => {
+app.get("/register", async (req, res) => {
+  try {
+  } catch (error) {}
+});
+app.get("/getData/:id", async (req, res) => {
   try {
     const { id } = req.params;
     console.log(id);
-    const result = await db.query(`SELECT * FROM books WHERE id=${id}`)
+    const result = await db.query(`SELECT * FROM books WHERE id=${id}`);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Book not found!" });
@@ -54,7 +65,7 @@ app.get("/getData/:id", async (req,res) => {
     console.error("Database error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
-})
+});
 
 app.put("/update/:id", async (req, res) => {
   try {
@@ -70,33 +81,61 @@ app.put("/update/:id", async (req, res) => {
       return res.status(404).json({ error: "Book not found!" });
     }
 
-    res.json({ message: "Book updated successfully!", updatedBook: result.rows[0] });
+    res.json({
+      message: "Book updated successfully!",
+      updatedBook: result.rows[0],
+    });
   } catch (error) {
     console.error("Database error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
-})
-app.post("/add", async (req,res) => {
-  const {name,author,review,rating,keyType,key} = req.body;
-  const url = getCover(keyType,key);
+});
+app.post("/add", async (req, res) => {
+  const { name, author, review, rating, keyType, key } = req.body;
+  const url = getCover(keyType, key);
   const result = await db.query(`SELECT * FROM books WHERE name=$1`, [name]);
-  if (result.rows.length > 0){
-    return res.status(409).json({ error: "Book already exists in the database!" });
-
+  if (result.rows.length > 0) {
+    return res
+      .status(409)
+      .json({ error: "Book already exists in the database!" });
   } else {
-    try { 
-      await db.query(`INSERT INTO books (name,author,review,rating,cover) VALUES ($1,$2,$3,$4,$5)`, [name,author,review,rating,url]);
-      res.status(201).json({ message: "Book added successfully!", data: req.body });
-      res.redirect("/");      
+    try {
+      await db.query(
+        `INSERT INTO books (name,author,review,rating,cover) VALUES ($1,$2,$3,$4,$5)`,
+        [name, author, review, rating, url]
+      );
+      res
+        .status(201)
+        .json({ message: "Book added successfully!", data: req.body });
+      // res.redirect("/");
       // console.log(req.body);
     } catch (error) {
       console.error("Database error:", error);
       res.status(500).json({ error: "Internal Server Error" });
     }
   }
-  
-  
-})
+});
+app.post("/register", async (req, res) => {
+  const { email,uid  } = req.body;
+  const result = await db.query(`SELECT * FROM users WHERE uid=$1`, [uid]);
+  if (result.rows.length > 0) {
+    return res
+      .status(409)
+      .json({ error: "User already exists in the database!" });
+  } else {
+  try {
+    await db.query("INSERT INTO users (uid,email) VALUES ($1,$2)", [
+      uid,
+      email,
+    ]);
+    res
+        .status(201)
+        .json({ message: "User added successfully!", data: req.body });
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}});
 app.delete("/delete/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -105,7 +144,9 @@ app.delete("/delete/:id", async (req, res) => {
     const result = await db.query("SELECT * FROM books WHERE id = $1", [id]);
 
     if (result.rows.length === 0) {
-      return res.status(409).json({ error: "Book does not exist in the database!" });
+      return res
+        .status(409)
+        .json({ error: "Book does not exist in the database!" });
     }
 
     // Delete the book

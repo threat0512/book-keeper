@@ -1,32 +1,19 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
+import { 
+  Button, TextField, Dialog, DialogActions, DialogContent, 
+  DialogTitle, IconButton, Slide, Box, Rating, Typography, 
+  InputLabel, OutlinedInput, MenuItem, FormControl, Select 
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import Slide from "@mui/material/Slide";
-import Box from "@mui/material/Box";
-import Rating from "@mui/material/Rating";
-import Typography from "@mui/material/Typography";
-import InputLabel from "@mui/material/InputLabel";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select from "@mui/material/Select";
 
 // Animation for Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
-  return <Slide direction="down" ref={ref} {...props} />;
+  return <Slide direction="up" ref={ref} {...props} />;
 });
 
 const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
   // Form state (pre-filled when editing)
-  console.log(bookData);
   const [formData, setFormData] = useState({
     name: "",
     author: "",
@@ -97,39 +84,61 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
       TransitionComponent={Transition}
       keepMounted
       onClose={onClose}
+      sx={{
+        "& .MuiDialog-paper": {
+          background: "#ffffff", // Soft background color
+          borderRadius: "12px", // Rounded corners
+          // padding: "20px",
+          boxShadow: "0px 8px 24px rgba(0,0,0,0.15)", // Soft shadow
+          width: "90%", // Responsive width
+          maxWidth: "500px", // Prevent excessive width
+        },
+      }}
     >
-      <DialogTitle>{isEdit ? "Edit Book" : "Post a New Book"}</DialogTitle>
-      <IconButton
-        aria-label="close"
-        onClick={onClose}
-        sx={(theme) => ({
-          position: "absolute",
-          right: 8,
-          top: 8,
-          color: theme.palette.grey[500],
-        })}
+      {/* Header with Close Button */}
+      <DialogTitle 
+        sx={{ 
+          fontSize: "1.5rem", 
+          fontWeight: "bold", 
+          textAlign: "center", 
+          paddingBottom: "10px",
+          backgroundColor: "#2F3C7E",
+          color: "white",
+          borderTopLeftRadius: "12px",
+          borderTopRightRadius: "12px"
+        }}
       >
-        <CloseIcon />
-      </IconButton>
+        {isEdit ? "Edit Book Details" : "Add a New Book"}
+        <IconButton 
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            position: "absolute",
+            right: 10,
+            top: 10,
+            color: "#ffffff",
+            transition: "0.3s",
+            "&:hover": { color: "#f1f1f1", transform: "rotate(90deg)" },
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
       {/* FORM STARTS HERE */}
       <form onSubmit={handleSubmit}>
         <DialogContent>
-          <DialogContentText>
-            {isEdit ? "Edit the book details below." : "Fill in the details below to add a new book."}
-          </DialogContentText>
-
           {/* Book Name */}
           <TextField
             required
             margin="dense"
             name="name"
-            label="Name of Book"
-            type="text"
+            label="Book Name"
             fullWidth
-            variant="standard"
+            variant="outlined"
             value={formData.name}
             onChange={handleChange}
+            sx={{ marginBottom: "12px" }}
           />
 
           {/* Author */}
@@ -137,12 +146,12 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
             required
             margin="dense"
             name="author"
-            label="Author of Book"
-            type="text"
+            label="Author"
             fullWidth
-            variant="standard"
+            variant="outlined"
             value={formData.author}
             onChange={handleChange}
+            sx={{ marginBottom: "12px" }}
           />
 
           {/* Review */}
@@ -150,12 +159,14 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
             required
             margin="dense"
             name="review"
-            label="Add a review"
-            type="text"
+            label="Review"
             fullWidth
-            variant="standard"
+            variant="outlined"
+            multiline
+            rows={3}
             value={formData.review}
             onChange={handleChange}
+            sx={{ marginBottom: "12px" }}
           />
 
           {/* Rating Component */}
@@ -194,9 +205,8 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
             margin="dense"
             name="key"
             label="Key"
-            type="text"
             fullWidth
-            variant="standard"
+            variant="outlined"
             value={formData.key}
             onChange={handleChange}
             disabled={isEdit} // Prevent changing key when editing
@@ -204,12 +214,29 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
         </DialogContent>
 
         {/* Submit Button */}
-        <DialogActions>
-          <Button onClick={onClose} color="secondary">
+        <DialogActions sx={{ justifyContent: "space-between", padding: "16px" }}>
+          <Button 
+            onClick={onClose} 
+            variant="outlined"
+            sx={{
+              borderRadius: "8px",
+              fontSize: "1rem",
+              "&:hover": { backgroundColor: "#ddd" },
+            }}
+          >
             Cancel
           </Button>
-          <Button type="submit" variant="contained" color="primary">
-            {isEdit ? "Update Book" : "Post a New Book"}
+          <Button 
+            type="submit" 
+            variant="contained"
+            sx={{
+              backgroundColor: "#2F3C7E",
+              borderRadius: "8px",
+              fontSize: "1rem",
+              "&:hover": { backgroundColor: "#4500b5" },
+            }}
+          >
+            {isEdit ? "Update Book" : "Post Book"}
           </Button>
         </DialogActions>
       </form>
