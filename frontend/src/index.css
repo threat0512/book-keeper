@@ -20,8 +20,8 @@ header {
   /* align-items: center; */
   justify-content: center;
   color: white;
-  text-align: center;
-  position: fixed; /* Fixes header to top */
+  /* text-align: center; */
+  /* position: fixed; Fixes header to top */
   top: 0;
   left: 0;
   z-index: 1000;
@@ -45,7 +45,7 @@ body {
   flex-direction: column; /* Stack elements vertically */
   justify-content: center; /* Center vertically */
   align-items: center; /* Center horizontally */
-  height: 70vh; /* Full screen height */
+  height: 80vh; /* Full screen height */
   text-align: center; /* Ensure text is centered */
 }
 
@@ -60,10 +60,6 @@ body {
   color: gray; /* Optional: change color */
 }
 
-.layout {
- 
- padding-left: 20px
-}
 
 
 

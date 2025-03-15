@@ -20,9 +20,10 @@ const db = new pg.Client({
 });
 db.connect();
 let books = [];
-const getBooks = async () => {
-  const result = await db.query("SELECT * FROM books ORDER BY id ASC");
-  // console.log(result.rows);
+const getBooks = async (uid) => { 
+  
+  const result = await db.query("SELECT * FROM books WHERE uid=$1 ORDER BY id ASC", [uid]);
+  console.log(result.rows);
   return result.rows;
 };
 const getCover = (keyType, key) => {
@@ -37,9 +38,11 @@ app.get("/", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-app.get("/dashboard", async (req, res) => {
+app.get("/dashboard/:uid", async (req, res) => {
   try {
-    books = await getBooks();
+    const {uid} = req.params;
+    console.log(uid);
+    books = await getBooks(uid);
     console.log(books);
     res.json(books);
   } catch (error) {

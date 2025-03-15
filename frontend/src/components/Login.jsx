@@ -31,7 +31,7 @@ export default function Login({ onLogin }) {
   const handleEmailLogin = async () => {
     try {
       const userCredential = await loginWithEmail(email, password);
-      onLogin(userCredential.user);
+      onLogin = userCredential.user;
       navigate("/home"); // ✅ Redirect to home after login
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
@@ -41,7 +41,7 @@ export default function Login({ onLogin }) {
   const handleGoogleSignIn = async () => {
     try {
       const userCredential = await loginWithGoogle();
-      onLogin(userCredential.user);
+      onLogin = userCredential.user;
       navigate("/home"); // ✅ Redirect to home after login
     } catch (error) {
       alert(`❌ Error: ${error.message}`);

@@ -1,0 +1,20 @@
+.elseDiv {
+    display: flex;
+    flex-direction: column; /* ✅ Stack items vertically */
+    align-items: center; /* ✅ Center items horizontally */
+    justify-content: center; /* ✅ Center content */
+    text-align: center;
+    margin-top: 20%;
+  }
+  
+  .add-icon {
+    font-size: 5rem; /* ✅ Make the Add Icon bigger */
+    /* margin-bottom: 10px; ✅ Add space below the icon */
+    color: #B85042; /* ✅ Match the theme */
+    cursor: pointer;
+
+  }
+  p {
+    font-weight: bold;
+    font-size: 1.9em;
+  }
