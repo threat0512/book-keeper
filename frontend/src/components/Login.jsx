@@ -61,19 +61,22 @@ export default function Login({ onLogin }) {
       <div className="leftReg">
         <div className="leftText">
           <h1>bookie.</h1>
-          <h2>Your Digital Bookshelf.</h2>
-          <h2>Anytime. Anywhere.</h2>
+          <h2>Welcome Back!</h2>
+          <h2>Your books are waiting for you.</h2>
         </div>
       </div>
 
       {/* Right Panel */}
       <div className="rightReg">
         <div className="rightText">
-          <h1>Sign Up</h1>
+          <h1>Sign In</h1>
           <div className="login">
-            First time?{" "}
-            <Button className="login-signup" size="small" sx={{textTransform: 'none', fontSize: '0.7em', textDecoration: 'underline'}} onClick={() => navigate("/register")}>
-              Register
+            Don't have an account?
+            <Button
+              className="signup-button"
+              onClick={() => navigate("/register")}
+            >
+              Sign Up
             </Button>
           </div>
 
@@ -125,23 +128,21 @@ export default function Login({ onLogin }) {
                   label="Password"
                 />
               </FormControl>
-
+              <div className="forgot-password">
+              <Button className="forgot-password-link">
+                Forgot Password?
+              </Button>
+            </div>
               {/* Register Button */}
               <Button
-                sx={{
-                  width: "100%",
-                  marginTop: "15px",
-                  textTransform: "none",
-                  backgroundColor: "black",
-                  fontSize: "1rem",
-                  padding: "10px",
-                }}
-                type="submit"
-                variant="contained"
-                onClick={handleEmailLogin}
-              >
-                Login
-              </Button>
+              className="login-btn"
+              type="submit"
+              variant="contained"
+              fullWidth
+              onClick={handleEmailLogin}
+            >
+              Sign In
+            </Button>
             </form>
           </Box>
         </div>

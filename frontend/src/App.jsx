@@ -9,7 +9,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 function App() {
   const [user, setUser] = useState(null);
-
+  const [land, setLand] = useState(false);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -33,7 +33,7 @@ function MainContent({ user, setUser }) {
     <div className="min-h-screen bg-white">
       {/* ✅ Hide Header on Login & Register Pages */}
       {!(location.pathname === "/register" || location.pathname === "/login") && (
-        <Header user={user} setUser={setUser} />
+        <Header user={user} setUser={setUser}/>
       )}
 
       <main className="container mx-auto px-8 py-12">

@@ -1,0 +1,140 @@
+.header {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    height: 70px !important;
+  }
+  
+  .header-toolbar {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px !important;
+    gap: 24px;
+  }
+  
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: fit-content;
+  }
+  
+  .logo-icon {
+    color: var(--primary-color);
+    font-size: 28px !important;
+  }
+  
+  .logo-text {
+    color: var(--primary-color);
+    font-weight: 600 !important;
+    font-size: 20px !important;
+  }
+  
+  .header-search {
+    flex: 1;
+    max-width: 600px;
+  }
+  
+  .search-paper {
+    display: flex;
+    align-items: center;
+    padding: 4px 16px;
+    border-radius: 12px !important;
+    background: rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.3s ease;
+  }
+  
+  .search-paper:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+  }
+  
+  .search-icon {
+    color: var(--text-light);
+    margin-right: 8px;
+    font-size: 20px !important;
+  }
+  
+  .search-input {
+    color: var(--text-dark);
+    font-size: 14px;
+  }
+  
+  .search-input input::placeholder {
+    color: var(--text-light);
+    opacity: 0.7;
+  }
+  
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .action-btn {
+    color: var(--text-light) !important;
+    background: transparent !important;
+    border-radius: 10px !important;
+    padding: 8px !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .action-btn:hover {
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--primary-color) !important;
+  }
+  
+  .add-btn {
+    color: var(--primary-color) !important;
+    background: rgba(27, 58, 75, 0.08) !important;
+  }
+  
+  .add-btn:hover {
+    background: rgba(27, 58, 75, 0.12) !important;
+  }
+  
+  .user-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  
+  .user-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    background: var(--primary-color) !important;
+    font-size: 14px !important;
+  }
+  
+  @media (max-width: 768px) {
+    .header-toolbar {
+      padding: 0 16px !important;
+    }
+  
+    .logo-text {
+      display: none;
+    }
+  
+    .search-paper {
+      padding: 4px 12px;
+    }
+  
+    .action-btn {
+      padding: 6px !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .header-search {
+      max-width: none;
+    }
+  
+    .user-section {
+      margin-left: 4px;
+      padding-left: 4px;
+    }
+  }

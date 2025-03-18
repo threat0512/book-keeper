@@ -95,7 +95,7 @@ export default function Register(props) {
       {/* Right Panel */}
       <div className="rightReg">
         <div className="rightText">
-          <h1>Sign Up</h1>
+          <h1>Create an account</h1>
           <div className="login">
             Already have an account?{" "}
             <Button
@@ -159,21 +159,16 @@ export default function Register(props) {
               </FormControl>
 
               {/* Register Button */}
+              
               <Button
-                sx={{
-                  width: "100%",
-                  marginTop: "15px",
-                  textTransform: "none",
-                  backgroundColor: "black",
-                  fontSize: "1rem",
-                  padding: "10px",
-                }}
-                type="submit"
-                variant="contained"
-                onClick={handleEmailRegister}
-              >
-                Register
-              </Button>
+              className="register-btn"
+              type="submit"
+              variant="contained"
+              fullWidth
+              onClick={handleEmailRegister}
+            >
+              Create Account
+            </Button>
             </form>
           </Box>
         </div>

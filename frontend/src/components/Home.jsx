@@ -1,11 +1,37 @@
 import "../styles/Home.css"
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Book from "./Book";
 import Sorter from "./Sorter";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Modal from "./Modal";
-
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Box,
+  Typography,
+  IconButton,
+  Card,
+  CardContent,
+  CardMedia,
+  Grid,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Rating
+} from '@mui/material';
+import Header from './Header';
+import { useNavigate } from 'react-router-dom'
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon
+} from '@mui/icons-material';
 function Home() {
   const [books, setBooks] = useState([]);
   const [uid, setUid] = useState(null); // ✅ Store UID in state
@@ -62,13 +88,33 @@ function Home() {
           <Book key={index} id={book.id} name={book.name} author={book.author} rating={book.rating} review={book.review} cover={book.cover} />
         ))
       ) : (
-        <div className="elseDiv">
-          <div className="add"><AddCircleIcon onClick={openModal} sx={{ fontSize: 70, boxShadow: "none","&:hover": {
-              
-                  boxShadow: "none",
-                } }}/></div>
-          <p>Get started by adding your first book</p>
-        </div>
+        <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="empty-state"
+            >
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="empty-state-content"
+              >
+                <motion.div
+                  whileHover={{ rotate: 180 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <IconButton className="add-button" onClick={openModal}>
+                    <AddIcon />
+                  </IconButton>
+                </motion.div>
+                <Typography variant="h5" className="empty-state-title">
+                  Your bookshelf is empty
+                </Typography>
+                <Typography variant="body1" className="empty-state-subtitle">
+                  Start building your collection by adding your first book
+                </Typography>
+              </motion.div>
+            </motion.div>
         
       )}
       <Modal isOpen={isModalOpen} onClose={closeModal} />

@@ -18,3 +18,29 @@
     font-weight: bold;
     font-size: 1.9em;
   }
+
+  .empty-state {
+    min-height: calc(100vh - 140px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .empty-state-content {
+    background: white;
+    padding: 48px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-width: 400px;
+    width: 100%;
+  }
+  
+  .empty-state-icon {
+    width: 64px !important;
+    height: 64px !important;
+    margin-bottom: 24px !important;
+    color: white !important;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+  }
