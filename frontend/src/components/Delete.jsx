@@ -8,13 +8,13 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function Delete({ isOpen, onClose, bookId }) {
+export default function Delete({ isOpen, onClose, bookId, userid }) {
   // Handle book deletion
   const handleSubmit = async (event) => {
     event.preventDefault(); // Prevent page reload
 
     try {
-      const response = await fetch(`http://localhost:3000/delete/${bookId}`, {
+      const response = await fetch(`http://localhost:3000/delete/${userid}/${bookId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });

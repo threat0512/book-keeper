@@ -1,124 +1,150 @@
-import "../styles/Home.css"
+import "../styles/Home.css";
 import React, { useEffect, useState } from "react";
 import Book from "./Book";
-import Sorter from "./Sorter";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Modal from "./Modal";
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Card,
-  CardContent,
-  CardMedia,
-  Grid,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Rating
-} from '@mui/material';
-import Header from './Header';
-import { useNavigate } from 'react-router-dom'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreVertIcon
-} from '@mui/icons-material';
+import { motion, AnimatePresence } from "framer-motion";
+import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme } from "@mui/material";
+import { Add as AddIcon, Search as SearchIcon, Star as StarIcon, LibraryBooks, AutoStories as StoriesIcon } from "@mui/icons-material";
+
 function Home() {
   const [books, setBooks] = useState([]);
-  const [uid, setUid] = useState(null); // ✅ Store UID in state
+  const [uid, setUid] = useState(null);
   const [isModalOpen, setModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortBy, setSortBy] = useState("rating");
+  const theme = useTheme();
   const auth = getAuth();
+  const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance"];
+
   const openModal = () => setModal(true);
   const closeModal = () => setModal(false);
 
   useEffect(() => {
-    // ✅ Track User Authentication State
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUid(user.uid); // ✅ Store UID in state when user logs in
+        setUid(user.uid);
       } else {
         setUid(null);
       }
     });
 
-    return () => unsubscribe(); // Cleanup on unmount
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    // ✅ Fetch books only when uid is available
     if (!uid) return;
 
+    setLoading(true);
     fetch(`http://localhost:3000/dashboard/${uid}`)
       .then((response) => response.json())
-      .then((data) => setBooks(data))
-      .catch((error) => console.error("Error fetching books:", error));
-  }, [uid]); // ✅ Re-run API call when `uid` changes
+      .then((data) => {
+        setBooks(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+        setLoading(false);
+      });
+  }, [uid]);
 
-  const handleSort = (sortOption) => {
-    let sorted = [...books];
-    
-    if (sortOption === "title") {
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortOption === "author") {
-      sorted.sort((a, b) => a.author.localeCompare(b.author));
-    } else if (sortOption === "rating") {
-      sorted.sort((a, b) => b.rating - a.rating);
-    }
-    setBooks(sorted);
-  };
+  const filteredBooks = books
+    .filter(book =>
+      book.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      book.author.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter(book => selectedCategory === "All" || book.category === selectedCategory)
+    .sort((a, b) => {
+      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "title") return a.name.localeCompare(b.name);
+      if (sortBy === "author") return a.author.localeCompare(b.author);
+      return 0;
+    });
 
   return (
-    <div className="layout">
-      <div className="header-container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "99.2%" }}>
-        <span className="intro" style={{ fontSize: "2.2rem", fontWeight: "bold", marginLeft: "1.1%" }}>My Library</span>
-        <Sorter className="sorter" onSortChange={handleSort} />
-      </div>
+    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", pt: 4, pb: 8 }}>
+      <Container maxWidth="lg">
+        <Box sx={{ textAlign: "center", mb: 6, position: "relative" }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+            <LibraryBooks sx={{ fontSize: 48, color: theme.palette.primary.main }} />
+          </Box>
+          <Typography variant="h2" component="h1" sx={{ fontWeight: "bold", mb: 2 }}>
+            Book Library
+          </Typography>
+          <Typography variant="h6" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto" }}>
+            Discover your next favorite book from our carefully curated collection
+          </Typography>
+        </Box>
 
-      {books.length > 0 ? (
-        books.map((book, index) => (
-          <Book key={index} id={book.id} name={book.name} author={book.author} rating={book.rating} review={book.review} cover={book.cover} />
-        ))
-      ) : (
-        <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="empty-state"
-            >
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="empty-state-content"
-              >
-                <motion.div
-                  whileHover={{ rotate: 180 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <IconButton className="add-button" onClick={openModal}>
-                    <AddIcon />
-                  </IconButton>
-                </motion.div>
-                <Typography variant="h5" className="empty-state-title">
-                  Your bookshelf is empty
-                </Typography>
-                <Typography variant="body1" className="empty-state-subtitle">
-                  Start building your collection by adding your first book
-                </Typography>
-              </motion.div>
-            </motion.div>
+        {/* 🔍 Search Input */}
+        <Box sx={{ mb: 4, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <TextField
+            fullWidth
+            placeholder="Search by title or author..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              maxWidth: "600px",
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "50px",
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
+                transition: "all 0.3s",
+                "&:hover": { backgroundColor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" },
+              },
+            }}
+          />
+        </Box>
+
+        {/* 📚 Filter & Sort */}
+        <Paper elevation={0} sx={{ p: 2, mb: 4, backgroundColor: "rgba(255, 255, 255, 0.9)", borderRadius: 2, display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", justifyContent: "space-between" }}>
         
-      )}
-      <Modal isOpen={isModalOpen} onClose={closeModal} />
-    </div>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <StoriesIcon color="primary" />
+            <Typography variant="h6" component="h2">
+              Browse Books
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Category</InputLabel>
+              <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} label="Category">
+                {categories.map(category => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Sort By</InputLabel>
+              <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} label="Sort By">
+                <MenuItem value="rating"><StarIcon sx={{ mr: 1, fontSize: 18 }} /> Highest Rated</MenuItem>
+                <MenuItem value="title">📖 Title (A-Z)</MenuItem>
+                <MenuItem value="author">👤 Author (A-Z)</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </Paper>
+
+        {/* 📖 Book List */}
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box>
+        ) : (
+          <Stack spacing={3}>
+            {filteredBooks.map((book) => (
+              <Book key={book.id} id={book.id} name={book.name} author={book.author} rating={book.rating} review={book.review} cover={book.cover} user={uid} />
+            ))}
+          </Stack>
+        )}
+      </Container>
+    </Box>
   );
 }
 

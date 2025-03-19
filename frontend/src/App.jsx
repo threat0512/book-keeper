@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { auth, onAuthStateChanged, logout } from "./firebase";
+import { auth, onAuthStateChanged } from "./firebase";
 import Header from "./components/Header";
 import LandingPage from "./components/LandingPage";
 import Register from "./components/Register";
@@ -9,9 +9,10 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 function App() {
   const [user, setUser] = useState(null);
-  const [land, setLand] = useState(false);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth state changed:", currentUser?.uid || "No user logged in");
       setUser(currentUser);
     });
 
@@ -19,21 +20,22 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <Router> {/* ✅ Wrap everything inside <Router> */}
       <MainContent user={user} setUser={setUser} />
     </Router>
   );
 }
 
-// Helper component to conditionally render Header
+// ✅ Move useLocation() inside MainContent
 function MainContent({ user, setUser }) {
   const location = useLocation();
+  const isLanding = location.pathname === "/"; // ✅ Now it's inside <Router>
 
   return (
     <div className="min-h-screen bg-white">
-      {/* ✅ Hide Header on Login & Register Pages */}
-      {!(location.pathname === "/register" || location.pathname === "/login") && (
-        <Header user={user} setUser={setUser}/>
+      {/* ✅ Hide Header on Login, Register, and Landing Page */}
+      {!["/register", "/login", "/"].includes(location.pathname) && (
+        <Header user={user} setUser={setUser} />
       )}
 
       <main className="container mx-auto px-8 py-12">

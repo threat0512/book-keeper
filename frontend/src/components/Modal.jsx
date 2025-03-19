@@ -6,13 +6,14 @@ import {
   InputLabel, OutlinedInput, MenuItem, FormControl, Select 
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { useNavigate } from "react-router-dom";
 
 // Animation for Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
+const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
   // Form state (pre-filled when editing)
   const [formData, setFormData] = useState({
     name: "",
@@ -21,8 +22,11 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
     rating: 0,
     keyType: "",
     key: "",
+    uid: userid || "",
   });
 
+  const navigate = useNavigate();
+  console.log(userid);
   // Load existing book details when editing
   useEffect(() => {
     if (isEdit && bookData) {
@@ -33,9 +37,12 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
         rating: bookData.rating || 0,
         keyType: bookData.keyType || "",
         key: bookData.key || "",
+        uid: userid || "",
       });
+    } else {
+      setFormData((prev) => ({ ...prev, uid: userid || "" }));
     }
-  }, [isEdit, bookData]);
+  }, [isEdit, bookData, userid]);
 
   // Handle input changes
   const handleChange = (event) => {
@@ -49,11 +56,17 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
 
   // Handle form submission
   const handleSubmit = async (event) => {
-    event.preventDefault(); // Prevent page reload
+    event.preventDefault(); // Prevent default form submission
+    console.log("Submitting formData:", formData);
+
+    if (!formData.uid) {
+      alert("Error: User ID is missing!");
+      return;
+    }
 
     const endpoint = isEdit
-      ? `http://localhost:3000/update/${bookData.id}` // Update existing book
-      : "http://localhost:3000/add"; // Add new book
+      ? `http://localhost:3000/update/${formData.uid}/${bookData.id}` // Update existing book
+      : `http://localhost:3000/add/${formData.uid}`; // Add new book
 
     const method = isEdit ? "PUT" : "POST";
 
@@ -69,12 +82,17 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
       } else if (response.ok) {
         console.log(isEdit ? "✅ Book updated successfully!" : "✅ Book added successfully!");
         onClose(); // Close modal after success
-        window.location.reload(); // Reload page to reflect changes
+
+        // ✅ Navigate home first, then reload after a short delay
+        navigate("/home");
+        setTimeout(() => {
+          window.location.reload();
+        }, 300); // Small delay to allow navigation to take effect
       } else {
-        console.error("Failed to submit book:", await response.text());
+        console.error("❌ Failed to submit book:", await response.text());
       }
     } catch (error) {
-      console.error("Error submitting book:", error);
+      console.error("❌ Error submitting book:", error);
     }
   };
 
@@ -86,15 +104,16 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
       onClose={onClose}
       sx={{
         "& .MuiDialog-paper": {
-          background: "#ffffff", // Soft background color
-          borderRadius: "12px", // Rounded corners
-          // padding: "20px",
-          boxShadow: "0px 8px 24px rgba(0,0,0,0.15)", // Soft shadow
-          width: "90%", // Responsive width
-          maxWidth: "500px", // Prevent excessive width
+          background: "#ffffff",
+          borderRadius: "12px",
+          boxShadow: "0px 8px 24px rgba(0,0,0,0.15)",
+          width: "90%",
+          maxWidth: "500px",
         },
       }}
     >
+      {console.log("Modal opened - userid:", userid)}
+
       {/* Header with Close Button */}
       <DialogTitle 
         sx={{ 
@@ -244,4 +263,4 @@ const FormModal = ({ isOpen, onClose, isEdit, bookData }) => {
   );
 };
 
-export default FormModal;
+export default Modal;

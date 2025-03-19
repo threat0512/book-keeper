@@ -70,14 +70,14 @@ app.get("/getData/:id", async (req, res) => {
   }
 });
 
-app.put("/update/:id", async (req, res) => {
+app.put("/update/:uid/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { uid, id } = req.params;
     const { name, author, review, rating } = req.body;
 
     const result = await db.query(
-      "UPDATE books SET name=$1, author=$2, review=$3, rating=$4 WHERE id=$5 RETURNING *",
-      [name, author, review, rating, id]
+      "UPDATE books SET name=$1, author=$2, review=$3, rating=$4 WHERE id=$5 AND uid= $6 RETURNING *",
+      [name, author, review, rating, id, uid]
     );
 
     if (result.rowCount === 0) {
@@ -93,10 +93,10 @@ app.put("/update/:id", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-app.post("/add", async (req, res) => {
-  const { name, author, review, rating, keyType, key } = req.body;
+app.post("/add/:uid", async (req, res) => {
+  const { name, author, review, rating, keyType, key, uid } = req.body;
   const url = getCover(keyType, key);
-  const result = await db.query(`SELECT * FROM books WHERE name=$1`, [name]);
+  const result = await db.query(`select * from books where name = $1 and uid=$2`, [name,uid]);
   if (result.rows.length > 0) {
     return res
       .status(409)
@@ -104,8 +104,8 @@ app.post("/add", async (req, res) => {
   } else {
     try {
       await db.query(
-        `INSERT INTO books (name,author,review,rating,cover) VALUES ($1,$2,$3,$4,$5)`,
-        [name, author, review, rating, url]
+        `INSERT INTO books (name,author,review,rating,cover,uid) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [name, author, review, rating, url, uid]
       );
       res
         .status(201)
@@ -139,12 +139,12 @@ app.post("/register", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }});
-app.delete("/delete/:id", async (req, res) => {
-  const { id } = req.params;
+app.delete("/delete/:uid/:id", async (req, res) => {
+  const { uid, id } = req.params;
 
   try {
     // Check if the book exists
-    const result = await db.query("SELECT * FROM books WHERE id = $1", [id]);
+    const result = await db.query("SELECT * FROM books WHERE id = $1 AND uid=$2", [id, uid]);
 
     if (result.rows.length === 0) {
       return res
@@ -153,7 +153,7 @@ app.delete("/delete/:id", async (req, res) => {
     }
 
     // Delete the book
-    await db.query("DELETE FROM books WHERE id = $1", [id]);
+    await db.query("DELETE FROM books WHERE id = $1 AND uid=$2", [id, uid]);
 
     res.status(200).json({ message: "Book deleted successfully!" }); // ✅ Proper success response
   } catch (error) {

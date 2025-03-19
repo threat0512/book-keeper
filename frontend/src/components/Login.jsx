@@ -1,7 +1,6 @@
 import "../styles/Register.css";
 import * as React from "react";
 import { useState } from "react";
-
 import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -12,47 +11,54 @@ import FormControl from "@mui/material/FormControl";
 import { Button } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
-import { auth, loginWithGoogle, loginWithEmail } from "../firebase";
-export default function Login({ onLogin }) {
+import { useNavigate } from "react-router-dom";
+import { loginWithGoogle, loginWithEmail } from "../firebase";
 
+export default function Login({ onLogin }) {
   // State for managing form inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Prevents duplicate submission
   const navigate = useNavigate();
 
   // Toggle Password Visibility
   const handleClickShowPassword = () => setShowPassword((show) => !show);
-
-  // Prevent mouse down event from triggering blur
   const handleMouseDownPassword = (event) => event.preventDefault();
-  // Handle Email Login
-  const handleEmailLogin = async () => {
+
+  // ✅ Handle Email Login
+  const handleEmailLogin = async (event) => {
+    event.preventDefault(); // ✅ Prevents page refresh
+    if (isSubmitting) return; // Prevent multiple submissions
+    setIsSubmitting(true);
+
     try {
       const userCredential = await loginWithEmail(email, password);
-      onLogin = userCredential.user;
+      console.log("✅ Logged in user:", userCredential.user);
+      onLogin(userCredential.user); // ✅ Correctly update parent state
       navigate("/home"); // ✅ Redirect to home after login
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
-    } 
-  };
-  
-  const handleGoogleSignIn = async () => {
-    try {
-      const userCredential = await loginWithGoogle();
-      onLogin = userCredential.user;
-      navigate("/home"); // ✅ Redirect to home after login
-    } catch (error) {
-      alert(`❌ Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  
-  // Handle form submission
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    console.log("Submitted Data:", { email, password });
-    // Here, you can add an API call to submit the form data.
+
+  // ✅ Handle Google Login
+  const handleGoogleSignIn = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const userCredential = await loginWithGoogle();
+      console.log("✅ Google logged in user:", userCredential.user);
+      onLogin(userCredential.user);
+      navigate("/home");
+    } catch (error) {
+      alert(`❌ Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -72,16 +78,13 @@ export default function Login({ onLogin }) {
           <h1>Sign In</h1>
           <div className="login">
             Don't have an account?
-            <Button
-              className="signup-button"
-              onClick={() => navigate("/register")}
-            >
+            <Button className="signup-button" onClick={() => navigate("/register")}>
               Sign Up
             </Button>
           </div>
 
-          {/* Google Signup Button */}
-          <button className="google-signup"onClick={handleGoogleSignIn}>
+          {/* ✅ Google Signup Button */}
+          <button className="google-signup" onClick={handleGoogleSignIn} disabled={isSubmitting}>
             <img src="/google.png" alt="Google logo" className="google-img" />
             Sign in with Google
           </button>
@@ -89,8 +92,8 @@ export default function Login({ onLogin }) {
           <Box>
             <div className="or">or</div>
 
-            {/* Signup Form */}
-            <form onSubmit={handleSubmit}>
+            {/* ✅ Form Handles Submission Properly */}
+            <form onSubmit={handleEmailLogin}>
               {/* Email Input */}
               <TextField
                 sx={{ width: "100%" }}
@@ -104,9 +107,7 @@ export default function Login({ onLogin }) {
 
               {/* Password Input */}
               <FormControl sx={{ width: "100%", marginTop: "10px" }} required>
-                <InputLabel htmlFor="outlined-adornment-password">
-                  Password
-                </InputLabel>
+                <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
                 <OutlinedInput
                   id="outlined-adornment-password"
                   type={showPassword ? "text" : "password"}
@@ -115,9 +116,7 @@ export default function Login({ onLogin }) {
                   endAdornment={
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label={
-                          showPassword ? "hide the password" : "show the password"
-                        }
+                        aria-label={showPassword ? "hide the password" : "show the password"}
                         onClick={handleClickShowPassword}
                         onMouseDown={handleMouseDownPassword}
                       >
@@ -128,21 +127,16 @@ export default function Login({ onLogin }) {
                   label="Password"
                 />
               </FormControl>
+
+              {/* Forgot Password */}
               <div className="forgot-password">
-              <Button className="forgot-password-link">
-                Forgot Password?
+                <Button className="forgot-password-link">Forgot Password?</Button>
+              </div>
+
+              {/* ✅ Submit Button (Now Works Correctly) */}
+              <Button className="login-btn" type="submit" variant="contained" fullWidth disabled={isSubmitting}>
+                {isSubmitting ? "Signing In..." : "Sign In"}
               </Button>
-            </div>
-              {/* Register Button */}
-              <Button
-              className="login-btn"
-              type="submit"
-              variant="contained"
-              fullWidth
-              onClick={handleEmailLogin}
-            >
-              Sign In
-            </Button>
             </form>
           </Box>
         </div>
