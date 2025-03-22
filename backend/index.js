@@ -20,9 +20,11 @@ const db = new pg.Client({
 });
 db.connect();
 let books = [];
-const getBooks = async (uid) => { 
-  
-  const result = await db.query("SELECT * FROM books WHERE uid=$1 ORDER BY id ASC", [uid]);
+const getBooks = async (uid) => {
+  const result = await db.query(
+    "SELECT * FROM books WHERE uid=$1 ORDER BY id ASC",
+    [uid]
+  );
   console.log(result.rows);
   return result.rows;
 };
@@ -40,7 +42,7 @@ app.get("/", async (req, res) => {
 });
 app.get("/dashboard/:uid", async (req, res) => {
   try {
-    const {uid} = req.params;
+    const { uid } = req.params;
     console.log(uid);
     books = await getBooks(uid);
     console.log(books);
@@ -73,11 +75,11 @@ app.get("/getData/:id", async (req, res) => {
 app.put("/update/:uid/:id", async (req, res) => {
   try {
     const { uid, id } = req.params;
-    const { name, author, review, rating } = req.body;
+    const { name, author, review, rating, category, status } = req.body;
 
     const result = await db.query(
-      "UPDATE books SET name=$1, author=$2, review=$3, rating=$4 WHERE id=$5 AND uid= $6 RETURNING *",
-      [name, author, review, rating, id, uid]
+      "UPDATE books SET name=$1, author=$2, review=$3, rating=$4, category=$5, status=$6 WHERE id=$7 AND uid= $8 RETURNING *",
+      [name, author, review, rating, category, status, id, uid]
     );
 
     if (result.rowCount === 0) {
@@ -94,9 +96,12 @@ app.put("/update/:uid/:id", async (req, res) => {
   }
 });
 app.post("/add/:uid", async (req, res) => {
-  const { name, author, review, rating, keyType, key, uid } = req.body;
+  const { name, author, review, rating, keyType, key, category, status, uid } = req.body;
   const url = getCover(keyType, key);
-  const result = await db.query(`select * from books where name = $1 and uid=$2`, [name,uid]);
+  const result = await db.query(
+    `select * from books where name = $1 and uid=$2`,
+    [name, uid]
+  );
   if (result.rows.length > 0) {
     return res
       .status(409)
@@ -104,8 +109,8 @@ app.post("/add/:uid", async (req, res) => {
   } else {
     try {
       await db.query(
-        `INSERT INTO books (name,author,review,rating,cover,uid) VALUES ($1,$2,$3,$4,$5,$6)`,
-        [name, author, review, rating, url, uid]
+        `INSERT INTO books (name,author,review,rating,cover,category,status,uid) VALUES ($1,$2,$3,$4,$5,$6, $7, $8)`,
+        [name, author, review, rating, url, category, status, uid]
       );
       res
         .status(201)
@@ -119,32 +124,36 @@ app.post("/add/:uid", async (req, res) => {
   }
 });
 app.post("/register", async (req, res) => {
-  const { email,uid  } = req.body;
+  const { email, uid } = req.body;
   const result = await db.query(`SELECT * FROM users WHERE uid=$1`, [uid]);
   if (result.rows.length > 0) {
     return res
       .status(409)
       .json({ error: "User already exists in the database!" });
   } else {
-  try {
-    await db.query("INSERT INTO users (uid,email) VALUES ($1,$2)", [
-      uid,
-      email,
-    ]);
-    res
+    try {
+      await db.query("INSERT INTO users (uid,email) VALUES ($1,$2)", [
+        uid,
+        email,
+      ]);
+      res
         .status(201)
         .json({ message: "User added successfully!", data: req.body });
-  } catch (error) {
-    console.error("Database error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    } catch (error) {
+      console.error("Database error:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   }
-}});
+});
 app.delete("/delete/:uid/:id", async (req, res) => {
   const { uid, id } = req.params;
 
   try {
     // Check if the book exists
-    const result = await db.query("SELECT * FROM books WHERE id = $1 AND uid=$2", [id, uid]);
+    const result = await db.query(
+      "SELECT * FROM books WHERE id = $1 AND uid=$2",
+      [id, uid]
+    );
 
     if (result.rows.length === 0) {
       return res

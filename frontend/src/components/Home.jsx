@@ -14,11 +14,12 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
   const [sortBy, setSortBy] = useState("rating");
   const theme = useTheme();
   const auth = getAuth();
-  const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance"];
-
+  const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance", "Others"];
+  const statuses = ["All", "Reading", "Completed", "Upcoming"]
   const openModal = () => setModal(true);
   const closeModal = () => setModal(false);
 
@@ -56,6 +57,7 @@ function Home() {
       book.author.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter(book => selectedCategory === "All" || book.category === selectedCategory)
+    .filter(book => selectedStatus === "All" || book.status === selectedStatus)
     .sort((a, b) => {
       if (sortBy === "rating") return b.rating - a.rating;
       if (sortBy === "title") return a.name.localeCompare(b.name);
@@ -123,6 +125,14 @@ function Home() {
               </Select>
             </FormControl>
             <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Status</InputLabel>
+              <Select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} label="Status">
+                {statuses.map(status => (
+                  <MenuItem key={status} value={status}>{status}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Sort By</InputLabel>
               <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} label="Sort By">
                 <MenuItem value="rating"><StarIcon sx={{ mr: 1, fontSize: 18 }} /> Highest Rated</MenuItem>
@@ -139,7 +149,7 @@ function Home() {
         ) : (
           <Stack spacing={3}>
             {filteredBooks.map((book) => (
-              <Book key={book.id} id={book.id} name={book.name} author={book.author} rating={book.rating} review={book.review} cover={book.cover} user={uid} />
+              <Book key={book.id} id={book.id} name={book.name} author={book.author} category={book.category} status={book.status} rating={book.rating} review={book.review} cover={book.cover} user={uid} />
             ))}
           </Stack>
         )}

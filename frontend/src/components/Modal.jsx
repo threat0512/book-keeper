@@ -18,6 +18,8 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
   const [formData, setFormData] = useState({
     name: "",
     author: "",
+    category: "",
+    status: "",
     review: "",
     rating: 0,
     keyType: "",
@@ -33,6 +35,8 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
       setFormData({
         name: bookData.name || "",
         author: bookData.author || "",
+        category: bookData.category || "",
+        status: bookData.status || "",
         review: bookData.review || "",
         rating: bookData.rating || 0,
         keyType: bookData.keyType || "",
@@ -172,10 +176,48 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
             onChange={handleChange}
             sx={{ marginBottom: "12px" }}
           />
-
+          {/* category */}
+          <Box sx={{ display: "flex", flexWrap: "wrap", mt: 1, minWidth: "140" }}>
+            <FormControl sx={{ minWidth: 120 }} fullWidth>
+              <InputLabel htmlFor="keyType">Genre</InputLabel>
+              <Select
+                defaultValue=""
+                required
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                input={<OutlinedInput label="category" />}
+              >
+                <MenuItem value="Self-Help">Self-Help</MenuItem>
+                <MenuItem value="Science Fiction">Science Fiction</MenuItem>
+                <MenuItem value="Mystery">Mystery</MenuItem>
+                <MenuItem value="Romance">Romance</MenuItem>
+                <MenuItem value="Others">Others</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+           {/* status */}
+           <Box sx={{ display: "flex", flexWrap: "wrap", mt: 1, minWidth: "140" }}>
+            <FormControl sx={{ minWidth: 120 }} fullWidth>
+              <InputLabel htmlFor="keyType">Status</InputLabel>
+              <Select
+                required
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                input={<OutlinedInput label="status" />}
+              >
+                <MenuItem value="Reading">All</MenuItem>
+                <MenuItem value="Reading">Reading</MenuItem>
+                <MenuItem value="Completed">Completed</MenuItem>
+                <MenuItem value="Upcoming">Upcoming</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
           {/* Review */}
           <TextField
-            required
             margin="dense"
             name="review"
             label="Review"
@@ -200,9 +242,11 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
 
           {/* Select Key Type */}
           <Box sx={{ display: "flex", flexWrap: "wrap", mt: 2 }}>
-            <FormControl sx={{ m: 1, minWidth: 120 }} fullWidth>
-              <InputLabel htmlFor="keyType">Key Type</InputLabel>
+            <FormControl sx={{  minWidth: 120 }} fullWidth>
+              
+              <InputLabel htmlFor="keyType">Key Type*</InputLabel>
               <Select
+                // {isEdit ? null : required}
                 id="keyType"
                 name="keyType"
                 value={formData.keyType}
