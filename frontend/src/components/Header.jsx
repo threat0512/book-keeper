@@ -11,6 +11,7 @@ import {
   Menu,
   MenuItem,
   Paper,
+  Button
 } from "@mui/material";
 import {
   LibraryBooks,
@@ -78,10 +79,13 @@ const Header = ({
 
             <Box className="user-section">
               {/* ✅ Prevent errors by checking if `user` exists */}
+              <Button onClick={() => navigate("/user")}>
               <Avatar className="user-avatar">
                 {user?.email?.[0]?.toUpperCase() || "U"}
               </Avatar>
 
+              </Button>
+              
               {user && (
                 <Tooltip title="Logout">
                   <IconButton onClick={handleLogout} className="action-btn">

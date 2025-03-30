@@ -5,6 +5,7 @@ import LandingPage from "./components/LandingPage";
 import Register from "./components/Register";
 import Login from "./components/Login";
 import Home from "./components/Home";
+import User from "./components/User"; 
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 
 function App() {
@@ -34,7 +35,7 @@ function MainContent({ user, setUser }) {
   return (
     <div className="min-h-screen bg-white">
       {/* ✅ Hide Header on Login, Register, and Landing Page */}
-      {!["/register", "/login", "/"].includes(location.pathname) && (
+      {!["/register", "/login", "/", "/user"].includes(location.pathname) && (
         <Header user={user} setUser={setUser} />
       )}
 
@@ -44,6 +45,7 @@ function MainContent({ user, setUser }) {
           <Route path="/register" element={<Register onLogin={setUser} />} />
           <Route path="/login" element={<Login onLogin={setUser} />} />
           <Route path="/home" element={<Home user={user} />} />
+          <Route path="/user" element={<User  setUser={setUser}/>} />
         </Routes>
       </main>
     </div>

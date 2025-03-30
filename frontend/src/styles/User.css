@@ -1,0 +1,20 @@
+
+.mainBox {
+    padding-top: 5%;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    background-color: #f9fafb; /* fallback background */
+    
+    align-items: center;
+  }
+  
+.logo-icon {
+    color: var(--primary-color);
+    font-size: 32px !important;
+  }
+  
+  .logo-text {
+    color: var(--primary-color);
+    font-weight: 600 !important;
+    font-size: 30px !important;
+  }

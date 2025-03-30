@@ -171,6 +171,25 @@ app.delete("/delete/:uid/:id", async (req, res) => {
   }
 });
 
+
+app.put('/user/email', async (req, res) => {
+  try {
+    const { uid, email } = req.body;
+    await db.query('UPDATE users SET email=$1 WHERE uid=$2', [email, uid]);
+    res.status(200).json({ message: 'Email updated' });
+  } catch (error) {
+    console.error("Backend DB Error:", error);
+    res.status(500).json({ error: 'Failed to update email in database' });
+  }
+});
+
+// Delete user
+app.delete('/user/delete', async (req, res) => {
+  const { uid } = req.body;
+  await db.query('DELETE FROM users WHERE uid=$1', [uid]);
+  res.status(200).json({ message: 'User deleted' });
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });

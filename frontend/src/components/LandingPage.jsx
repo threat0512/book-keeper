@@ -34,9 +34,7 @@ function LandingPage() {
             <button className="btn-get-started" onClick={() => (navigate("/register"))}>
               Get Started - It's Free
             </button>
-            <button className="btn-learn-more">
-              Learn More
-            </button>
+            
           </div>
         </section>
 

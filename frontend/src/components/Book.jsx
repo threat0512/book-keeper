@@ -238,6 +238,10 @@ export default function Book(props) {
         onClose={closeDel}
         bookId={props.id}
         userid={props.user}
+        title="Delete this book?"
+        message="Deleting this book will permanently remove it from your collection. This action cannot be undone."
+        confirmLabel="Delete Permanently"
+        confirmColor="red"
       />
     </Paper>
   );
