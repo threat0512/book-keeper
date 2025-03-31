@@ -6,9 +6,12 @@ import Modal from "./Modal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme } from "@mui/material";
 import { Add as AddIcon, Search as SearchIcon, Star as StarIcon, LibraryBooks, AutoStories as StoriesIcon } from "@mui/icons-material";
-
+import Pagination from '@mui/material/Pagination';
 function Home() {
   const [books, setBooks] = useState([]);
+  const [page, setPage] = useState(1);
+
+  const [bookCount, setCount] = useState(0);
   const [uid, setUid] = useState(null);
   const [isModalOpen, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,8 @@ function Home() {
     if (!uid) return;
 
     setLoading(true);
-    fetch(`http://localhost:3000/dashboard/${uid}`)
+    fetch(`http://localhost:3000/dashboard/${uid}?page=1&limit=5`)
+
       .then((response) => response.json())
       .then((data) => {
         setBooks(data);
@@ -51,6 +55,42 @@ function Home() {
       });
   }, [uid]);
 
+  useEffect(() => {
+    if (!uid) return;
+
+    setLoading(true);
+    fetch(`http://localhost:3000/books/count/${uid}`)
+
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        setCount(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+      
+      });
+  }, [uid]);
+  useEffect(() => {
+    if (!uid) return;
+  
+    setLoading(true);
+    fetch(`http://localhost:3000/dashboard/${uid}?page=${page}&limit=5`)
+      .then((response) => response.json())
+      .then((data) => {
+        setBooks(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+        setLoading(false);
+      });
+  }, [uid, page]); // 👈 re-fetch when page changes
+  
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus]);
+  
   const filteredBooks = books
     .filter(book =>
       book.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -64,7 +104,7 @@ function Home() {
       if (sortBy === "author") return a.author.localeCompare(b.author);
       return 0;
     });
-
+ 
   return (
     <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", pt: 4, pb: 8 }}>
       <Container maxWidth="lg">
@@ -154,6 +194,17 @@ function Home() {
           </Stack>
         )}
       </Container>
+      {!loading && bookCount > 1 && (
+  <Stack spacing={2} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 3 }}>
+    <Pagination
+      count={bookCount}
+      color="primary"
+      page={page}
+      onChange={(e, value) => setPage(value)}
+    />
+  </Stack>
+)}
+
     </Box>
   );
 }

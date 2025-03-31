@@ -29,12 +29,6 @@ import { useNavigate } from "react-router-dom";
 const Header = ({
   user,
   setUser,
-  searchQuery,
-  onSearchChange,
-  onSort,
-  sortAnchorEl,
-  onSortClick,
-  onSortClose,
 }) => {
   const [isModalOpen, setModal] = useState(false);
   const navigate = useNavigate();

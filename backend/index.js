@@ -20,14 +20,16 @@ const db = new pg.Client({
 });
 db.connect();
 let books = [];
-const getBooks = async (uid) => {
+const getBooks = async (uid, page = 1, limit = 5) => {
+  const offset = (page - 1) * limit;
   const result = await db.query(
-    "SELECT * FROM books WHERE uid=$1 ORDER BY id ASC",
-    [uid]
+    "SELECT * FROM books WHERE uid = $1 ORDER BY id ASC LIMIT $2 OFFSET $3",
+    [uid, limit, offset]
   );
   console.log(result.rows);
   return result.rows;
 };
+
 const getCover = (keyType, key) => {
   return `https://covers.openlibrary.org/b/${keyType}/${key}-M.jpg`;
 };
@@ -42,9 +44,14 @@ app.get("/", async (req, res) => {
 });
 app.get("/dashboard/:uid", async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
     const { uid } = req.params;
+    if (!uid) return res.status(400).json({ error: "User ID (uid) is required." });
     console.log(uid);
-    books = await getBooks(uid);
+    console.log(page);
+    console.log(limit);
+    books = await getBooks(uid, page, limit);
     console.log(books);
     res.json(books);
   } catch (error) {
@@ -52,6 +59,22 @@ app.get("/dashboard/:uid", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+app.get("/books/count/:uid", async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const limit = parseInt(req.query.limit) || 5;
+
+    const result = await db.query("SELECT COUNT(*) FROM books WHERE uid = $1", [uid]);
+    const totalBooks = parseInt(result.rows[0].count);
+    const totalPages = Math.ceil(totalBooks / limit);
+
+    res.json(totalPages); // return number of pages, not just count
+  } catch (error) {
+    console.error("Count error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 app.get("/register", async (req, res) => {
   try {
   } catch (error) {}
