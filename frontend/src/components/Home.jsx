@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme } from "@mui/material";
 import { Add as AddIcon, Search as SearchIcon, Star as StarIcon, LibraryBooks, AutoStories as StoriesIcon } from "@mui/icons-material";
 import Pagination from '@mui/material/Pagination';
+import Footer from "./Footer";
+
 function Home() {
   const [books, setBooks] = useState([]);
   const [page, setPage] = useState(1);
@@ -106,7 +108,7 @@ function Home() {
     });
  
   return (
-    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", pt: 4, pb: 8 }}>
+    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)", pt: 4,  marginBottom: '0' }}>
       <Container maxWidth="lg">
         <Box sx={{ textAlign: "center", mb: 6, position: "relative" }}>
           <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
@@ -195,8 +197,20 @@ function Home() {
         )}
       </Container>
       {!loading && bookCount > 1 && (
-  <Stack spacing={2} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 3 }}>
+ <Stack
+ spacing={2}
+ sx={{
+   display: 'flex',
+   flexDirection: 'column',
+   alignItems: 'center',
+   mt: 3,
+   mb: 6, // ✅ Add space between pagination and footer
+ }}
+>
     <Pagination
+      sx={{
+        marginTop: '2%'
+      }}
       count={bookCount}
       color="primary"
       page={page}
@@ -204,7 +218,8 @@ function Home() {
     />
   </Stack>
 )}
-
+{/* Footer here */}
+<Footer />
     </Box>
   );
 }
