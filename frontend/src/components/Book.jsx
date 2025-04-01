@@ -71,10 +71,15 @@ export default function Book(props) {
         "&:hover": {
           transform: "translateY(-4px)",
           boxShadow: 6,
+          "& .edit-delete-buttons": {
+            display: "flex",
+            opacity: 1,
+          },
         },
         overflow: "hidden",
         borderRadius: 2,
         marginBottom: "1%",
+        position: "relative",
       }}
     >
       {/* Book Cover */}
@@ -201,47 +206,50 @@ export default function Book(props) {
           </Typography>
         </>
       </Box>
+
+      {/* Edit/Delete Buttons */}
       <Box
+        className="edit-delete-buttons"
         sx={{
           position: "absolute",
           top: 8,
           right: 8,
           display: "flex",
+          opacity: 0,
           gap: 1,
           backgroundColor: "black",
           borderRadius: "20px",
           padding: "4px",
+          zIndex: 1,
+          transition: "opacity 0.2s ease-in-out",
         }}
       >
-        <>
-          <IconButton size="small" onClick={openModal} sx={{ color: "white" }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={openDel}
-            sx={{ color: "error.main" }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </>
+        <IconButton size="small" onClick={openModal} sx={{ color: "white" }}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={openDel}
+          sx={{ color: "error.main" }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
       </Box>
+
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
         isEdit={isEditOpen}
         bookData={bookData}
         userid={props.user}
+        onBookUpdated={props.onDelete}
       />
       <Delete
         isOpen={isDeleteOpen}
         onClose={closeDel}
         bookId={props.id}
         userid={props.user}
-        title="Delete this book?"
-        message="Deleting this book will permanently remove it from your collection. This action cannot be undone."
-        confirmLabel="Delete Permanently"
-        confirmColor="red"
+        onDelete={props.onDelete}
       />
     </Paper>
   );

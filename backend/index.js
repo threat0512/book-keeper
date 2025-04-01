@@ -3,9 +3,16 @@ import bodyParser from "body-parser";
 import pg from "pg";
 import env from "dotenv";
 import cors from "cors";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
 const app = express();
 const port = 3000;
 env.config();
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002" });
+
 app.use(express.json()); // ✅ Parses JSON body
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
@@ -211,6 +218,58 @@ app.delete('/user/delete', async (req, res) => {
   const { uid } = req.body;
   await db.query('DELETE FROM users WHERE uid=$1', [uid]);
   res.status(200).json({ message: 'User deleted' });
+});
+
+// Helper function to get user's books for context
+const getUserBooks = async (uid) => {
+  try {
+    const result = await db.query(
+      "SELECT name, author, category, status, rating, review FROM books WHERE uid = $1",
+      [uid]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("Error fetching user books:", error);
+    return [];
+  }
+};
+
+// Chat endpoint
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, uid, userBooks, isNewUser } = req.body;
+
+    let context = "";
+    if (isNewUser) {
+      context = "You are a book recommendation assistant for a new user. ";
+      context += "Keep responses brief and concise. ";
+      context += "For each recommendation, just mention the book title, author, and one key reason why it's worth reading. ";
+      context += "Limit to 2-3 recommendations.";
+    } else {
+      context = "You are a book recommendation assistant for an existing user. ";
+      context += "Here are their current books:\n";
+      userBooks.forEach(book => {
+        context += `- ${book.name} by ${book.author} (${book.category}, Rating: ${book.rating})\n`;
+      });
+      context += "\nKeep responses brief and concise. ";
+      context += "For each recommendation, just mention the book title, author, and one key reason why it matches their interests. ";
+      context += "Limit to 2-3 recommendations.";
+    }
+
+    const prompt = `${context}\n\nUser message: ${message}\n\nProvide brief book recommendations.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({
+      message: text,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Chat error:", error);
+    res.status(500).json({ error: "Failed to process chat message" });
+  }
 });
 
 app.listen(port, () => {

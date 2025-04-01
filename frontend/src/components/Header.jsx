@@ -37,9 +37,14 @@ const Header = ({
   const closeModal = () => setModal(false);
 
   const handleLogout = async () => {
-    await logout();
-    setUser(null);
-    navigate("/");
+    try {
+      await logout();
+      setUser(null);
+      navigate("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      alert("Failed to log out. Please try again.");
+    }
   };
 
   return (

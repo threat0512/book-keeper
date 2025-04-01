@@ -26,6 +26,7 @@ export default function Delete({
   confirmColor = "red",
   bookId = null,
   userid = null,
+  onDelete = null,
 }) {
   const handleBookDelete = async () => {
     try {
@@ -38,7 +39,9 @@ export default function Delete({
         alert("❌ This book does not exist in the database!");
       } else if (response.ok) {
         onClose();
-        setTimeout(() => window.location.reload(), 500);
+        if (onDelete) {
+          onDelete();
+        }
       } else {
         console.error("❌ Failed to delete book:", await response.text());
       }
@@ -53,7 +56,6 @@ export default function Delete({
     } else if (onConfirm) {
       onConfirm(); // external logic (e.g., account deletion)
     }
-    onClose(); // close in both cases
   };
 
   return (

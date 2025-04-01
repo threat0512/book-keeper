@@ -5,6 +5,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "nodemon": "^3.1.9",
+    "@google/generative-ai": "^0.2.1",
     "pg": "^8.13.3"
   },
   "name": "backend",
@@ -12,6 +13,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

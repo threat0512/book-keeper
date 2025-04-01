@@ -13,7 +13,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
+const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => {
   // Form state (pre-filled when editing)
   const [formData, setFormData] = useState({
     name: "",
@@ -86,12 +86,9 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
       } else if (response.ok) {
         console.log(isEdit ? "✅ Book updated successfully!" : "✅ Book added successfully!");
         onClose(); // Close modal after success
-
-        // ✅ Navigate home first, then reload after a short delay
-        navigate("/home");
-        setTimeout(() => {
-          window.location.reload();
-        }, 300); // Small delay to allow navigation to take effect
+        if (onBookUpdated) {
+          onBookUpdated();
+        }
       } else {
         console.error("❌ Failed to submit book:", await response.text());
       }
@@ -209,7 +206,7 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid }) => {
                 onChange={handleChange}
                 input={<OutlinedInput label="status" />}
               >
-                <MenuItem value="Reading">All</MenuItem>
+    
                 <MenuItem value="Reading">Reading</MenuItem>
                 <MenuItem value="Completed">Completed</MenuItem>
                 <MenuItem value="Upcoming">Upcoming</MenuItem>
