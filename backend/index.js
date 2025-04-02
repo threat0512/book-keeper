@@ -15,7 +15,15 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-002" });
 
 app.use(express.json()); // ✅ Parses JSON body
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors());
+
+// Configure CORS
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://book-keeper-frontend.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.static("public"));
 
 // Database connection
