@@ -51,16 +51,92 @@ app.get("/", async (req, res) => {
 });
 app.get("/dashboard/:uid", async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
     const { uid } = req.params;
-    if (!uid) return res.status(400).json({ error: "User ID (uid) is required." });
-    console.log(uid);
-    console.log(page);
-    console.log(limit);
-    books = await getBooks(uid, page, limit);
-    console.log(books);
-    res.json(books);
+    const { page = 1, limit = 5, search = "", category = "All", status = "All", sortBy = "rating" } = req.query;
+    
+    // Calculate offset for pagination
+    const offset = (page - 1) * limit;
+
+    // Build base query
+    let query = "SELECT * FROM books WHERE uid = $1";
+    const queryParams = [uid];
+    let paramCount = 1;
+
+    // Add search filter if provided
+    if (search) {
+      paramCount++;
+      query += ` AND (LOWER(name) LIKE LOWER($${paramCount}) OR LOWER(author) LIKE LOWER($${paramCount}))`;
+      queryParams.push(`%${search}%`);
+    }
+
+    // Add category filter if not "All"
+    if (category !== "All") {
+      paramCount++;
+      query += ` AND category = $${paramCount}`;
+      queryParams.push(category);
+    }
+
+    // Add status filter if not "All"
+    if (status !== "All") {
+      paramCount++;
+      query += ` AND status = $${paramCount}`;
+      queryParams.push(status);
+    }
+
+    // Add sorting
+    switch (sortBy) {
+      case "title":
+        query += ` ORDER BY name ASC`;
+        break;
+      case "author":
+        query += ` ORDER BY author ASC`;
+        break;
+      case "rating":
+      default:
+        query += ` ORDER BY rating DESC NULLS LAST`;
+        break;
+    }
+
+    // Add pagination
+    query += ` LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    queryParams.push(limit, offset);
+
+    // Execute main query
+    const result = await db.query(query, queryParams);
+
+    // Get total count for pagination
+    let countQuery = "SELECT COUNT(*) FROM books WHERE uid = $1";
+    const countParams = [uid];
+    paramCount = 1;
+
+    if (search) {
+      paramCount++;
+      countQuery += ` AND (LOWER(name) LIKE LOWER($${paramCount}) OR LOWER(author) LIKE LOWER($${paramCount}))`;
+      countParams.push(`%${search}%`);
+    }
+
+    if (category !== "All") {
+      paramCount++;
+      countQuery += ` AND category = $${paramCount}`;
+      countParams.push(category);
+    }
+
+    if (status !== "All") {
+      paramCount++;
+      countQuery += ` AND status = $${paramCount}`;
+      countParams.push(status);
+    }
+
+    const countResult = await db.query(countQuery, countParams);
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    res.json({
+      books: result.rows,
+      totalCount,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalCount / limit)
+    });
+
   } catch (error) {
     console.error("Database error:", error);
     res.status(500).json({ error: "Internal Server Error" });

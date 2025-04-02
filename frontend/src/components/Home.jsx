@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme, Fab } from "@mui/material";
 import { Add as AddIcon, Search as SearchIcon, Star as StarIcon, LibraryBooks, AutoStories as StoriesIcon, Chat as ChatIcon } from "@mui/icons-material";
 import Pagination from '@mui/material/Pagination';
+import { useLocation } from 'react-router-dom';
 
 import Footer from "./Footer";
 import ChatBox from "./ChatBot";
@@ -25,96 +26,69 @@ function Home({ user }) {
   const theme = useTheme();
   const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance", "Others"];
   const statuses = ["All", "Reading", "Completed", "Upcoming"];
+  const location = useLocation();
   
-  useEffect(() => {
+  // Fetch books with filters
+  const fetchBooks = async () => {
     if (!user) return;
 
     setLoading(true);
-    fetch(`http://localhost:3000/dashboard/${user.uid}?page=1&limit=5`)
-      .then((response) => response.json())
-      .then((data) => {
-        setBooks(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching books:", error);
-        setLoading(false);
+    try {
+      const queryParams = new URLSearchParams({
+        page,
+        limit: 5,
+        search: searchTerm,
+        category: selectedCategory,
+        status: selectedStatus,
+        sortBy
       });
-  }, [user]);
 
+      const response = await fetch(`http://localhost:3000/dashboard/${user.uid}?${queryParams}`);
+      const data = await response.json();
+      
+      setBooks(data.books);
+      setCount(data.totalPages);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+      setLoading(false);
+    }
+  };
+
+  // Fetch books when filters or page changes
   useEffect(() => {
-    if (!user) return;
+    fetchBooks();
+  }, [user, page, searchTerm, selectedCategory, selectedStatus, sortBy]);
 
-    setLoading(true);
-    fetch(`http://localhost:3000/books/count/${user.uid}`)
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data);
-        setCount(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching books:", error);
-      });
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-  
-    setLoading(true);
-    fetch(`http://localhost:3000/dashboard/${user.uid}?page=${page}&limit=5`)
-      .then((response) => response.json())
-      .then((data) => {
-        setBooks(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching books:", error);
-        setLoading(false);
-      });
-  }, [user, page]); // 👈 re-fetch when page changes
-  
+  // Reset to first page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedCategory, selectedStatus]);
-  
-  const filteredBooks = books
-    .filter(book =>
-      book.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      book.author.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter(book => selectedCategory === "All" || book.category === selectedCategory)
-    .filter(book => selectedStatus === "All" || book.status === selectedStatus)
-    .sort((a, b) => {
-      if (sortBy === "rating") return b.rating - a.rating;
-      if (sortBy === "title") return a.name.localeCompare(b.name);
-      if (sortBy === "author") return a.author.localeCompare(b.author);
-      return 0;
-    });
+  }, [searchTerm, selectedCategory, selectedStatus, sortBy]);
+
+  // Update filters when navigating from footer
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.resetFilters) {
+        // Reset all filters
+        setSearchTerm("");
+        setSelectedCategory("All");
+        setSelectedStatus("All");
+        setSortBy("rating");
+      }
+      // Apply new filter if provided
+      if (location.state.selectedStatus) {
+        setSelectedStatus(location.state.selectedStatus);
+      }
+      if (location.state.selectedCategory) {
+        setSelectedCategory(location.state.selectedCategory);
+      }
+      // Clear the state after using it
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const refreshBooks = () => {
-    if (!user) return;
-    
-    setLoading(true);
-    fetch(`http://localhost:3000/dashboard/${user.uid}?page=${page}&limit=5`)
-      .then((response) => response.json())
-      .then((data) => {
-        setBooks(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching books:", error);
-        setLoading(false);
-      });
-
-    // Also refresh the book count
-    fetch(`http://localhost:3000/books/count/${user.uid}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setCount(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching books:", error);
-      });
+    fetchBooks();
   };
 
   return (
@@ -214,7 +188,7 @@ function Home({ user }) {
             <EmptyBookShelf user={user} onBookAdded={refreshBooks} />
           ) : (
             <Stack spacing={3}>
-              {filteredBooks.map((book) => (
+              {books.map((book) => (
                 <Book 
                   key={book.id} 
                   id={book.id} 
