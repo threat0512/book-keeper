@@ -12,9 +12,10 @@ import { Button } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
-import { loginWithGoogle, loginWithEmail } from "../firebase";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../firebase";
 
-export default function Login({ onLogin }) {
+export default function Login() {
   // State for managing form inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,36 +27,33 @@ export default function Login({ onLogin }) {
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (event) => event.preventDefault();
 
-  // ✅ Handle Email Login
+  // Handle Email Login
   const handleEmailLogin = async (event) => {
-    event.preventDefault(); // ✅ Prevents page refresh
-    if (isSubmitting) return; // Prevent multiple submissions
+    event.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      const userCredential = await loginWithEmail(email, password);
-      console.log("✅ Logged in user:", userCredential.user);
-      onLogin(userCredential.user); // ✅ Correctly update parent state
-      navigate("/home"); // ✅ Redirect to home after login
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate("/dashboard");
     } catch (error) {
-      alert(`❌ Error: ${error.message}`);
+      alert(`Error: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ✅ Handle Google Login
+  // Handle Google Login
   const handleGoogleSignIn = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      const userCredential = await loginWithGoogle();
-      console.log("✅ Google logged in user:", userCredential.user);
-      onLogin(userCredential.user);
-      navigate("/home");
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate("/dashboard");
     } catch (error) {
-      alert(`❌ Error: ${error.message}`);
+      alert(`Error: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -83,7 +81,7 @@ export default function Login({ onLogin }) {
             </Button>
           </div>
 
-          {/* ✅ Google Signup Button */}
+          {/* Google Signup Button */}
           <button className="google-signup" onClick={handleGoogleSignIn} disabled={isSubmitting}>
             <img src="/google.png" alt="Google logo" className="google-img" />
             Sign in with Google
@@ -92,7 +90,7 @@ export default function Login({ onLogin }) {
           <Box>
             <div className="or">or</div>
 
-            {/* ✅ Form Handles Submission Properly */}
+            {/* Form Handles Submission Properly */}
             <form onSubmit={handleEmailLogin}>
               {/* Email Input */}
               <TextField
@@ -133,7 +131,7 @@ export default function Login({ onLogin }) {
                 <Button className="forgot-password-link">Forgot Password?</Button>
               </div>
 
-              {/* ✅ Submit Button (Now Works Correctly) */}
+              {/* Submit Button */}
               <Button className="login-btn" type="submit" variant="contained" fullWidth disabled={isSubmitting}>
                 {isSubmitting ? "Signing In..." : "Sign In"}
               </Button>

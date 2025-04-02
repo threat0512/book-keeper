@@ -5,6 +5,8 @@ import { auth } from "./firebase";
 import Header from "./components/Header";
 import Home from "./components/Home";
 import LandingPage from "./components/LandingPage";
+import Login from "./components/Login";
+import Register from "./components/Register";
 import { ThemeProvider, createTheme } from "@mui/material";
 
 const theme = createTheme({
@@ -46,6 +48,14 @@ function App() {
           <Route
             path="/"
             element={user ? <Navigate to="/dashboard" /> : <LandingPage />}
+          />
+          <Route
+            path="/login"
+            element={user ? <Navigate to="/dashboard" /> : <Login />}
+          />
+          <Route
+            path="/register"
+            element={user ? <Navigate to="/dashboard" /> : <Register />}
           />
           <Route
             path="/dashboard"
