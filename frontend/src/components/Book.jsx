@@ -22,6 +22,9 @@ import {
 import FaceIcon from "@mui/icons-material/Face";
 import CategoryIcon from '@mui/icons-material/Category';
 import Modal from "./Modal"; // Import the Modal component
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export default function Book(props) {
   const [isModalOpen, setModal] = useState(false);
   const [isEditOpen, setEdit] = useState(false);
@@ -37,7 +40,7 @@ export default function Book(props) {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/getData/${props.id}`,
+        `${API_URL}/getData/${props.id}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -59,6 +62,27 @@ export default function Book(props) {
     setModal(false);
     setEdit(false);
     setBookData({});
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(`${API_URL}/delete/${props.user}/${props.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete book');
+      }
+
+      props.onDelete(); // Refresh the book list
+      setDelOpen(false);
+    } catch (error) {
+      console.error('Error deleting book:', error);
+      alert('Failed to delete book. Please try again.');
+    }
   };
 
   return (
@@ -246,7 +270,7 @@ export default function Book(props) {
       />
       <Delete
         isOpen={isDeleteOpen}
-        onClose={closeDel}
+        onClose={handleDelete}
         bookId={props.id}
         userid={props.user}
         onDelete={props.onDelete}

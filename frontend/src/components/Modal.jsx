@@ -3,40 +3,44 @@ import { useState, useEffect } from "react";
 import { 
   Button, TextField, Dialog, DialogActions, DialogContent, 
   DialogTitle, IconButton, Slide, Box, Rating, Typography, 
-  InputLabel, OutlinedInput, MenuItem, FormControl, Select 
+  InputLabel, OutlinedInput, MenuItem, FormControl, Select, Alert 
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { useNavigate } from "react-router-dom";
 
 // Animation for Dialog
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const categories = ["Self-Help", "Science Fiction", "Mystery", "Romance", "Others"];
+const statuses = ["Reading", "Completed", "Upcoming"];
+
 const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => {
   // Form state (pre-filled when editing)
   const [formData, setFormData] = useState({
-    name: "",
-    author: "",
-    category: "",
-    status: "",
-    review: "",
-    rating: 0,
-    keyType: "",
-    key: "",
+    name: bookData?.name || "",
+    author: bookData?.author || "",
+    category: bookData?.category || categories[0],
+    status: bookData?.status || statuses[0],
+    review: bookData?.review || "",
+    rating: bookData?.rating || 0,
+    keyType: bookData?.keyType || "",
+    key: bookData?.key || "",
     uid: userid || "",
   });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
-  console.log(userid);
   // Load existing book details when editing
   useEffect(() => {
     if (isEdit && bookData) {
       setFormData({
         name: bookData.name || "",
         author: bookData.author || "",
-        category: bookData.category || "",
-        status: bookData.status || "",
+        category: bookData.category || categories[0],
+        status: bookData.status || statuses[0],
         review: bookData.review || "",
         rating: bookData.rating || 0,
         keyType: bookData.keyType || "",
@@ -60,8 +64,9 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
 
   // Handle form submission
   const handleSubmit = async (event) => {
-    event.preventDefault(); // Prevent default form submission
-    console.log("Submitting formData:", formData);
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
 
     if (!formData.uid) {
       alert("Error: User ID is missing!");
@@ -69,8 +74,8 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
     }
 
     const endpoint = isEdit
-      ? `http://localhost:3000/update/${formData.uid}/${bookData.id}` // Update existing book
-      : `http://localhost:3000/add/${formData.uid}`; // Add new book
+      ? `${API_URL}/update/${formData.uid}/${bookData.id}` // Update existing book
+      : `${API_URL}/add/${formData.uid}`; // Add new book
 
     const method = isEdit ? "PUT" : "POST";
 
@@ -91,9 +96,13 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
         }
       } else {
         console.error("❌ Failed to submit book:", await response.text());
+        setError("Failed to submit book. Please try again.");
       }
     } catch (error) {
       console.error("❌ Error submitting book:", error);
+      setError("Failed to submit book. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,7 +111,7 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
       open={isOpen}
       TransitionComponent={Transition}
       keepMounted
-      onClose={onClose}
+      onClose={() => !loading && onClose()}
       sx={{
         "& .MuiDialog-paper": {
           background: "#ffffff",
@@ -131,7 +140,7 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
         {isEdit ? "Edit Book Details" : "Add a New Book"}
         <IconButton 
           aria-label="close"
-          onClick={onClose}
+          onClick={() => !loading && onClose()}
           sx={{
             position: "absolute",
             right: 10,
@@ -148,6 +157,11 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
       {/* FORM STARTS HERE */}
       <form onSubmit={handleSubmit}>
         <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           {/* Book Name */}
           <TextField
             required
@@ -186,11 +200,11 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
                 onChange={handleChange}
                 input={<OutlinedInput label="category" />}
               >
-                <MenuItem value="Self-Help">Self-Help</MenuItem>
-                <MenuItem value="Science Fiction">Science Fiction</MenuItem>
-                <MenuItem value="Mystery">Mystery</MenuItem>
-                <MenuItem value="Romance">Romance</MenuItem>
-                <MenuItem value="Others">Others</MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {category}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
@@ -206,10 +220,11 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
                 onChange={handleChange}
                 input={<OutlinedInput label="status" />}
               >
-    
-                <MenuItem value="Reading">Reading</MenuItem>
-                <MenuItem value="Completed">Completed</MenuItem>
-                <MenuItem value="Upcoming">Upcoming</MenuItem>
+                {statuses.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
@@ -276,7 +291,7 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
         {/* Submit Button */}
         <DialogActions sx={{ justifyContent: "space-between", padding: "16px" }}>
           <Button 
-            onClick={onClose} 
+            onClick={() => !loading && onClose()} 
             variant="outlined"
             sx={{
               borderRadius: "8px",
@@ -295,8 +310,9 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
               fontSize: "1rem",
               "&:hover": { backgroundColor: "#4500b5" },
             }}
+            disabled={loading}
           >
-            {isEdit ? "Update Book" : "Post Book"}
+            {loading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </form>

@@ -2,7 +2,7 @@ import "../styles/Home.css";
 import React, { useEffect, useState } from "react";
 import Book from "./Book";
 import { AnimatePresence } from "framer-motion";
-import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme, Fab, useMediaQuery } from "@mui/material";
+import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme, Fab, useMediaQuery, Alert } from "@mui/material";
 import { Add as AddIcon, Search as SearchIcon, Star as StarIcon, LibraryBooks, AutoStories as StoriesIcon, Chat as ChatIcon } from "@mui/icons-material";
 import Pagination from '@mui/material/Pagination';
 import { useLocation } from 'react-router-dom';
@@ -17,7 +17,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 function Home({ user }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
 
   const [books, setBooks] = useState([]);
@@ -30,19 +29,20 @@ function Home({ user }) {
   const [isTooltipVisible, setIsTooltipVisible] = useState(true);
   const [sortBy, setSortBy] = useState("rating");
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [error, setError] = useState(null);
   
   const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance", "Others"];
   const statuses = ["All", "Reading", "Completed", "Upcoming"];
 
-  // Fetch books with filters
   const fetchBooks = async () => {
     if (!user) return;
 
     setLoading(true);
+    setError(null);
     try {
       const queryParams = new URLSearchParams({
         page,
-        limit: 5,
+        limit: isMobile ? 3 : 5,
         search: searchTerm,
         category: selectedCategory,
         status: selectedStatus,
@@ -50,26 +50,44 @@ function Home({ user }) {
       });
 
       const response = await fetch(`${API_URL}/dashboard/${user.uid}?${queryParams}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch books');
+      }
+
       const data = await response.json();
-      
       setBooks(data.books);
       setCount(data.totalPages);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching books:", error);
+      setError("Failed to load books. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
 
-  // Fetch books when filters or page changes
   useEffect(() => {
     fetchBooks();
-  }, [user, page, searchTerm, selectedCategory, selectedStatus, sortBy]);
+  }, [user, page, searchTerm, selectedCategory, selectedStatus, sortBy, isMobile]);
 
-  // Reset to first page when filters change
-  useEffect(() => {
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(1); // Reset to first page when searching
+  };
+
+  const handleCategoryChange = (event) => {
+    setSelectedCategory(event.target.value);
     setPage(1);
-  }, [searchTerm, selectedCategory, selectedStatus, sortBy]);
+  };
+
+  const handleStatusChange = (event) => {
+    setSelectedStatus(event.target.value);
+    setPage(1);
+  };
+
+  const handleSortChange = (event) => {
+    setSortBy(event.target.value);
+    setPage(1);
+  };
 
   // Update filters when navigating from footer
   useEffect(() => {
@@ -126,7 +144,7 @@ function Home({ user }) {
                   fullWidth
                   placeholder="Search by title or author..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearch}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -172,7 +190,7 @@ function Home({ user }) {
                 }}>
                   <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                     <InputLabel>Category</InputLabel>
-                    <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} label="Category">
+                    <Select value={selectedCategory} onChange={handleCategoryChange} label="Category">
                       {categories.map(category => (
                         <MenuItem key={category} value={category}>{category}</MenuItem>
                       ))}
@@ -180,7 +198,7 @@ function Home({ user }) {
                   </FormControl>
                   <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                     <InputLabel>Status</InputLabel>
-                    <Select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} label="Status">
+                    <Select value={selectedStatus} onChange={handleStatusChange} label="Status">
                       {statuses.map(status => (
                         <MenuItem key={status} value={status}>{status}</MenuItem>
                       ))}
@@ -188,7 +206,7 @@ function Home({ user }) {
                   </FormControl>
                   <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                     <InputLabel>Sort By</InputLabel>
-                    <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} label="Sort By">
+                    <Select value={sortBy} onChange={handleSortChange} label="Sort By">
                       <MenuItem value="rating"><StarIcon sx={{ mr: 1, fontSize: 18 }} /> Highest Rated</MenuItem>
                       <MenuItem value="title">📖 Title (A-Z)</MenuItem>
                       <MenuItem value="author">👤 Author (A-Z)</MenuItem>
@@ -201,6 +219,8 @@ function Home({ user }) {
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mt: 4, mb: 2 }}>{error}</Alert>
           ) : books.length === 0 ? (
             <EmptyBookShelf user={user} onBookAdded={refreshBooks} />
           ) : (
