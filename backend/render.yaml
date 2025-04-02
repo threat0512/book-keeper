@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: book-keeper-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: PG_USER
+        value: neondb_owner
+      - key: PG_HOST
+        value: ep-little-hall-a5qyf2jd-pooler.us-east-2.aws.neon.tech
+      - key: PG_DATABASE
+        value: neondb
+      - key: PG_PASSWORD
+        sync: false
+      - key: PG_PORT
+        value: 5432
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: NODE_VERSION
+        value: 18.17.0 

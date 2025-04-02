@@ -12,6 +12,8 @@ import ChatBox from "./ChatBot";
 import AnimatedTooltip from "./AnimatedTooltip";
 import EmptyBookShelf from "./EmptyBookShelf";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 function Home({ user }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -47,7 +49,7 @@ function Home({ user }) {
         sortBy
       });
 
-      const response = await fetch(`http://localhost:3000/dashboard/${user.uid}?${queryParams}`);
+      const response = await fetch(`${API_URL}/dashboard/${user.uid}?${queryParams}`);
       const data = await response.json();
       
       setBooks(data.books);
