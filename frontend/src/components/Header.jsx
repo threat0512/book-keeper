@@ -20,7 +20,7 @@ import {
   Add as AddIcon,
   Logout as LogoutIcon,
 } from "@mui/icons-material";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import "../styles/Header.css";
 import Modal from "./Modal";
 import { logout } from "../firebase";
@@ -28,7 +28,7 @@ import { useNavigate } from "react-router-dom";
 
 const Header = ({
   user,
-  setUser,
+  onLogout
 }) => {
   const [isModalOpen, setModal] = useState(false);
   const navigate = useNavigate();
@@ -39,8 +39,8 @@ const Header = ({
   const handleLogout = async () => {
     try {
       await logout();
-      setUser(null);
-      navigate("/login");
+      onLogout();
+      navigate("/");
     } catch (error) {
       console.error("Error logging out:", error);
       alert("Failed to log out. Please try again.");
@@ -51,7 +51,7 @@ const Header = ({
     <AppBar position="sticky" className="header" elevation={0}>
       {console.log("User:", user)} {/* ✅ Debugging */}
       <Toolbar className="header-toolbar">
-        <motion.div
+        <div
           className="header-logo"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -61,10 +61,10 @@ const Header = ({
           <Typography variant="h6" className="logo-text">
             Bookie
           </Typography>
-        </motion.div>
+        </div>
 
         <AnimatePresence>
-          <motion.div
+          <div
             className="header-actions"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -79,15 +79,18 @@ const Header = ({
             <Box className="user-section">
               {/* ✅ Prevent errors by checking if `user` exists */}
               <Button onClick={() => navigate("/user")}>
-              <Avatar className="user-avatar">
-                {user?.email?.[0]?.toUpperCase() || "U"}
-              </Avatar>
-
+                <Avatar className="user-avatar">
+                  {user?.email?.[0]?.toUpperCase() || "U"}
+                </Avatar>
               </Button>
               
               {user && (
                 <Tooltip title="Logout">
-                  <IconButton onClick={handleLogout} className="action-btn">
+                  <IconButton 
+                    onClick={handleLogout} 
+                    className="action-btn"
+                    sx={{ ml: 1 }}
+                  >
                     <LogoutIcon />
                   </IconButton>
                 </Tooltip>
@@ -104,7 +107,7 @@ const Header = ({
             ) : (
               <Modal isOpen={isModalOpen} onClose={closeModal} userid={null} />
             )}
-          </motion.div>
+          </div>
         </AnimatePresence>
       </Toolbar>
     </AppBar>

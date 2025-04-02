@@ -2,7 +2,7 @@ import "../styles/Home.css";
 import React, { useEffect, useState } from "react";
 import Book from "./Book";
 import { AnimatePresence } from "framer-motion";
-import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme, Fab } from "@mui/material";
+import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme, Fab, useMediaQuery } from "@mui/material";
 import { Add as AddIcon, Search as SearchIcon, Star as StarIcon, LibraryBooks, AutoStories as StoriesIcon, Chat as ChatIcon } from "@mui/icons-material";
 import Pagination from '@mui/material/Pagination';
 import { useLocation } from 'react-router-dom';
@@ -13,6 +13,11 @@ import AnimatedTooltip from "./AnimatedTooltip";
 import EmptyBookShelf from "./EmptyBookShelf";
 
 function Home({ user }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
+
   const [books, setBooks] = useState([]);
   const [page, setPage] = useState(1);
   const [bookCount, setCount] = useState(0);
@@ -23,11 +28,10 @@ function Home({ user }) {
   const [isTooltipVisible, setIsTooltipVisible] = useState(true);
   const [sortBy, setSortBy] = useState("rating");
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const theme = useTheme();
+  
   const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance", "Others"];
   const statuses = ["All", "Reading", "Completed", "Upcoming"];
-  const location = useLocation();
-  
+
   // Fetch books with filters
   const fetchBooks = async () => {
     if (!user) return;
@@ -99,26 +103,23 @@ function Home({ user }) {
       background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
       position: 'relative'
     }}>
-      {/* Main Content */}
-      <Box sx={{ flex: '1 0 auto', pt: 4, pb: 6 }}>
+      <Box sx={{ flex: '1 0 auto', pt: { xs: 2, sm: 4 }, pb: { xs: 4, sm: 6 } }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: "center", mb: 6, position: "relative" }}>
+          <Box sx={{ textAlign: "center", mb: { xs: 3, sm: 6 }, position: "relative" }}>
             <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
-              <LibraryBooks sx={{ fontSize: 48, color: theme.palette.primary.main }} />
+              <LibraryBooks sx={{ fontSize: { xs: 36, sm: 48 }, color: theme.palette.primary.main }} />
             </Box>
-            <Typography variant="h2" component="h1" sx={{ fontWeight: "bold", mb: 2 }}>
+            <Typography variant={isMobile ? "h4" : "h2"} component="h1" sx={{ fontWeight: "bold", mb: 2 }}>
               Book Library
             </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: "600px", mx: "auto" }}>
+            <Typography variant={isMobile ? "body1" : "h6"} color="text.secondary" sx={{ maxWidth: "600px", mx: "auto", px: { xs: 2, sm: 0 } }}>
               Discover your next favorite book from our carefully curated collection
             </Typography>
           </Box>
 
-          {/* 🔍 Search Input and Filters - Only show when books exist */}
           {books.length > 0 && (
             <>
-              {/* Search Input */}
-              <Box sx={{ mb: 4, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <Box sx={{ mb: { xs: 3, sm: 4 }, display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <TextField
                   fullWidth
                   placeholder="Search by title or author..."
@@ -143,16 +144,31 @@ function Home({ user }) {
                 />
               </Box>
 
-              {/* Filter & Sort */}
-              <Paper elevation={0} sx={{ p: 2, mb: 4, backgroundColor: "rgba(255, 255, 255, 0.9)", borderRadius: 2, display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", justifyContent: "space-between" }}>
+              <Paper elevation={0} sx={{ 
+                p: { xs: 1, sm: 2 }, 
+                mb: { xs: 3, sm: 4 }, 
+                backgroundColor: "rgba(255, 255, 255, 0.9)", 
+                borderRadius: 2, 
+                display: "flex", 
+                flexDirection: { xs: "column", sm: "row" },
+                flexWrap: "wrap", 
+                gap: 2, 
+                alignItems: { xs: "flex-start", sm: "center" }, 
+                justifyContent: "space-between" 
+              }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <StoriesIcon color="primary" />
-                  <Typography variant="h6" component="h2">
+                  <Typography variant={isMobile ? "subtitle1" : "h6"} component="h2">
                     Browse Books
                   </Typography>
                 </Box>
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <FormControl sx={{ minWidth: 200 }}>
+                <Box sx={{ 
+                  display: "flex", 
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 2,
+                  width: { xs: "100%", sm: "auto" }
+                }}>
+                  <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                     <InputLabel>Category</InputLabel>
                     <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} label="Category">
                       {categories.map(category => (
@@ -160,7 +176,7 @@ function Home({ user }) {
                       ))}
                     </Select>
                   </FormControl>
-                  <FormControl sx={{ minWidth: 200 }}>
+                  <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                     <InputLabel>Status</InputLabel>
                     <Select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} label="Status">
                       {statuses.map(status => (
@@ -168,7 +184,7 @@ function Home({ user }) {
                       ))}
                     </Select>
                   </FormControl>
-                  <FormControl sx={{ minWidth: 200 }}>
+                  <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
                     <InputLabel>Sort By</InputLabel>
                     <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)} label="Sort By">
                       <MenuItem value="rating"><StarIcon sx={{ mr: 1, fontSize: 18 }} /> Highest Rated</MenuItem>
@@ -181,7 +197,6 @@ function Home({ user }) {
             </>
           )}
 
-          {/* 📖 Book List */}
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box>
           ) : books.length === 0 ? (
@@ -206,7 +221,6 @@ function Home({ user }) {
             </Stack>
           )}
 
-          {/* Pagination */}
           {!loading && bookCount > 1 && (
             <Stack
               spacing={2}
@@ -215,7 +229,7 @@ function Home({ user }) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 mt: 3,
-                mb: 6,
+                mb: { xs: 4, sm: 6 },
               }}
             >
               <Pagination
@@ -226,26 +240,26 @@ function Home({ user }) {
                 color="primary"
                 page={page}
                 onChange={(e, value) => setPage(value)}
+                size={isMobile ? "small" : "medium"}
               />
             </Stack>
           )}
         </Container>
       </Box>
 
-      {/* Footer - Will stick to bottom */}
       <Box sx={{ flexShrink: 0 }}>
         <Footer />
       </Box>
 
-      {/* Chat Interface */}
       <AnimatePresence>
         {isChatOpen && (
           <Box
             sx={{
               position: "fixed",
-              bottom: 80,
-              right: 16,
+              bottom: { xs: 60, sm: 80 },
+              right: { xs: 8, sm: 16 },
               zIndex: 1000,
+              width: { xs: "90%", sm: "400px" }
             }}
           >
             <ChatBox 
@@ -257,8 +271,7 @@ function Home({ user }) {
         )}
       </AnimatePresence>
 
-      {/* Chat FAB with Animated Tooltip */}
-      <Box sx={{ position: "fixed", bottom: 16, right: 16, zIndex: 1000 }}>
+      <Box sx={{ position: "fixed", bottom: { xs: 8, sm: 16 }, right: { xs: 8, sm: 16 }, zIndex: 1000 }}>
         <AnimatedTooltip 
           isVisible={isTooltipVisible} 
           onClose={() => setIsTooltipVisible(false)} 
@@ -277,9 +290,11 @@ function Home({ user }) {
               transform: "scale(1.1)",
             },
             transition: "all 0.2s ease-in-out",
+            width: { xs: 40, sm: 56 },
+            height: { xs: 40, sm: 56 }
           }}
         >
-          <ChatIcon />
+          <ChatIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
         </Fab>
       </Box>
     </Box>

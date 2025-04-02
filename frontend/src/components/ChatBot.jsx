@@ -177,7 +177,7 @@ const ChatBox = ({ isOpen, onClose, user }) => {
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" sx={{ color: 'white', fontWeight: 500 }}>
-            BookBot
+            Bibble
           </Typography>
           <IconButton 
             onClick={onClose}
