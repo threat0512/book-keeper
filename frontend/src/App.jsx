@@ -1,87 +1,60 @@
-import Header from "./components/Header";
-import LandingPage from "./components/LandingPage";
-import Register from "./components/Register";
-import Login from "./components/Login";
-import Home from "./components/Home";
-import User from "./components/User"; 
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { setCookie, getCookie, deleteCookie } from "./utils/cookieUtils";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
+import Header from "./components/Header";
+import Home from "./components/Home";
+import LandingPage from "./components/LandingPage";
+import { ThemeProvider, createTheme } from "@mui/material";
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#2196f3",
+    },
+    secondary: {
+      main: "#f50057",
+    },
+  },
+  typography: {
+    fontFamily: "'Poppins', sans-serif",
+  },
+});
 
 function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Check for existing user cookie on component mount
   useEffect(() => {
-    const userCookie = getCookie('user');
-    if (userCookie) {
-      try {
-        const userData = JSON.parse(userCookie);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error parsing user cookie:', error);
-        deleteCookie('user');
-      }
-    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = (userData) => {
-    setUser(userData);
-    // Store user data in cookie for 2 days
-    setCookie('user', JSON.stringify(userData), 2);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    deleteCookie('user');
-  };
+  if (loading) {
+    return null;
+  }
 
   return (
-    <Router>
-      <MainContent 
-        user={user} 
-        setUser={setUser} 
-        onLogin={handleLogin} 
-        onLogout={handleLogout} 
-      />
-    </Router>
-  );
-}
-
-function MainContent({ user, setUser, onLogin, onLogout }) {
-  const location = useLocation();
-
-  return (
-    <div className="min-h-screen bg-white">
-      {!["/register", "/login", "/", "/user"].includes(location.pathname) && (
-        <Header user={user} setUser={setUser} onLogout={onLogout} />
-      )}
-
-      <main className="container mx-auto px-8 py-12">
+    <ThemeProvider theme={theme}>
+      <Router>
+        {user && <Header user={user} />}
         <Routes>
-          <Route 
-            path="/" 
-            element={user ? <Navigate to="/home" replace /> : <LandingPage />} 
+          <Route
+            path="/"
+            element={user ? <Navigate to="/dashboard" /> : <LandingPage />}
           />
-          <Route 
-            path="/register" 
-            element={user ? <Navigate to="/home" replace /> : <Register onLogin={onLogin} />} 
+          <Route
+            path="/dashboard"
+            element={user ? <Home user={user} /> : <Navigate to="/" />}
           />
-          <Route 
-            path="/login" 
-            element={user ? <Navigate to="/home" replace /> : <Login onLogin={onLogin} />} 
-          />
-          <Route 
-            path="/home" 
-            element={user ? <Home user={user} /> : <Navigate to="/" replace />} 
-          />
-          <Route 
-            path="/user" 
-            element={user ? <User user={user} /> : <Navigate to="/" replace />} 
-          />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </main>
-    </div>
+      </Router>
+    </ThemeProvider>
   );
 }
 
