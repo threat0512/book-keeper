@@ -6,7 +6,7 @@ import cors from "cors";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 env.config();
 
 // Initialize Gemini AI
@@ -18,11 +18,47 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static("public"));
 
+// Database connection
 const db = new pg.Client({
-  connectionString: process.env.PG_CONNECTION_STRING,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    require: true,
+    rejectUnauthorized: false
+  }
 });
 
-db.connect();
+// Add error handling for database connection
+db.connect()
+  .then(() => {
+    console.log('Connected to Neon PostgreSQL database');
+    // Create tables if they don't exist
+    return db.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        uid TEXT PRIMARY KEY,
+        email TEXT NOT NULL
+      );
+      
+      CREATE TABLE IF NOT EXISTS books (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        author TEXT NOT NULL,
+        review TEXT,
+        rating INTEGER,
+        cover TEXT,
+        category TEXT,
+        status TEXT,
+        uid TEXT REFERENCES users(uid) ON DELETE CASCADE
+      );
+    `);
+  })
+  .then(() => {
+    console.log('Database tables verified/created');
+  })
+  .catch(err => {
+    console.error('Database connection/setup error:', err);
+    process.exit(1);
+  });
+
 let books = [];
 const getBooks = async (uid, page = 1, limit = 5) => {
   const offset = (page - 1) * limit;
