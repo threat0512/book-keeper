@@ -95,6 +95,9 @@ app.get("/dashboard/:uid", async (req, res) => {
     const { uid } = req.params;
     const { page = 1, limit = 5, search = "", category = "All", status = "All", sortBy = "rating" } = req.query;
     
+    console.log("Dashboard request for user:", uid);
+    console.log("Query params:", { page, limit, search, category, status, sortBy });
+    
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
 
@@ -142,8 +145,12 @@ app.get("/dashboard/:uid", async (req, res) => {
     query += ` LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
     queryParams.push(limit, offset);
 
+    console.log("Executing query:", query);
+    console.log("Query params:", queryParams);
+
     // Execute main query
     const result = await db.query(query, queryParams);
+    console.log("Query result:", result.rows);
 
     // Get total count for pagination
     let countQuery = "SELECT COUNT(*) FROM books WHERE uid = $1";
@@ -171,12 +178,17 @@ app.get("/dashboard/:uid", async (req, res) => {
     const countResult = await db.query(countQuery, countParams);
     const totalCount = parseInt(countResult.rows[0].count);
 
-    res.json({
+    console.log("Total count:", totalCount);
+
+    const response = {
       books: result.rows,
       totalCount,
       currentPage: parseInt(page),
       totalPages: Math.ceil(totalCount / limit)
-    });
+    };
+
+    console.log("Sending response:", response);
+    res.json(response);
 
   } catch (error) {
     console.error("Database error:", error);
@@ -243,31 +255,50 @@ app.put("/update/:uid/:id", async (req, res) => {
   }
 });
 app.post("/add/:uid", async (req, res) => {
-  const { name, author, review, rating, keyType, key, category, status, uid } = req.body;
-  const url = getCover(keyType, key);
-  const result = await db.query(
-    `select * from books where name = $1 and uid=$2`,
-    [name, uid]
-  );
-  if (result.rows.length > 0) {
-    return res
-      .status(409)
-      .json({ error: "Book already exists in the database!" });
-  } else {
-    try {
-      await db.query(
-        `INSERT INTO books (name,author,review,rating,cover,category,status,uid) VALUES ($1,$2,$3,$4,$5,$6, $7, $8)`,
-        [name, author, review, rating, url, category, status, uid]
-      );
-      res
-        .status(201)
-        .json({ message: "Book added successfully!", data: req.body });
-      // res.redirect("/");
-      // console.log(req.body);
-    } catch (error) {
-      console.error("Database error:", error);
-      res.status(500).json({ error: "Internal Server Error" });
+  try {
+    const { name, author, review, rating, category, status, keyType, key } = req.body;
+    const { uid } = req.params;
+
+    console.log("Adding book for user:", uid);
+    console.log("Book data:", { name, author, review, rating, category, status, keyType, key });
+
+    // Generate cover URL if keyType and key are provided
+    const cover = keyType && key ? getCover(keyType, key) : null;
+
+    // First, ensure user exists in the users table
+    const userResult = await db.query("SELECT * FROM users WHERE uid = $1", [uid]);
+    if (userResult.rows.length === 0) {
+      console.log("User not found, creating new user");
+      // User doesn't exist, create them
+      await db.query("INSERT INTO users (uid, email) VALUES ($1, $2)", [uid, 'user@example.com']);
     }
+
+    // Check if book already exists for this user
+    const existingBook = await db.query(
+      "SELECT * FROM books WHERE name = $1 AND uid = $2",
+      [name, uid]
+    );
+
+    if (existingBook.rows.length > 0) {
+      console.log("Book already exists");
+      return res.status(409).json({ error: "Book already exists in your library!" });
+    }
+
+    // Add the new book
+    console.log("Adding new book to database");
+    const result = await db.query(
+      "INSERT INTO books (name, author, review, rating, category, status, cover, uid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+      [name, author, review, rating, category, status, cover, uid]
+    );
+
+    console.log("Book added successfully:", result.rows[0]);
+    res.status(201).json({
+      message: "Book added successfully!",
+      book: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 app.post("/register", async (req, res) => {

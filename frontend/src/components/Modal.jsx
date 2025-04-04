@@ -69,7 +69,8 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
     setLoading(true);
 
     if (!formData.uid) {
-      alert("Error: User ID is missing!");
+      setError("Error: User ID is missing!");
+      setLoading(false);
       return;
     }
 
@@ -80,23 +81,46 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
     const method = isEdit ? "PUT" : "POST";
 
     try {
+      console.log("Submitting book data:", {
+        name: formData.name,
+        author: formData.author,
+        category: formData.category,
+        status: formData.status,
+        review: formData.review,
+        rating: formData.rating,
+        keyType: formData.keyType,
+        key: formData.key
+      });
+
       const response = await fetch(endpoint, {
         method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          author: formData.author,
+          category: formData.category,
+          status: formData.status,
+          review: formData.review,
+          rating: formData.rating,
+          keyType: formData.keyType,
+          key: formData.key
+        }),
       });
 
+      const data = await response.json();
+      console.log("Server response:", data);
+
       if (response.status === 409) {
-        alert("❌ This book already exists in the database!");
+        setError("This book already exists in your library!");
       } else if (response.ok) {
         console.log(isEdit ? "✅ Book updated successfully!" : "✅ Book added successfully!");
-        onClose(); // Close modal after success
         if (onBookUpdated) {
-          onBookUpdated();
+          onBookUpdated(); // Refresh the book list
         }
+        onClose(); // Close modal after success
       } else {
-        console.error("❌ Failed to submit book:", await response.text());
-        setError("Failed to submit book. Please try again.");
+        console.error("❌ Failed to submit book:", data.error);
+        setError(data.error || "Failed to submit book. Please try again.");
       }
     } catch (error) {
       console.error("❌ Error submitting book:", error);

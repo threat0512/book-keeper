@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send as SendIcon, Close as CloseIcon } from '@mui/icons-material';
 import { Box, IconButton, TextField, Typography, Paper, InputAdornment } from '@mui/material';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 const newUserMessage = {
   id: '1',
   text: "Welcome to bibble! 📚 I can recommend popular books across different genres. What interests you?",
@@ -34,7 +36,7 @@ const ChatBox = ({ isOpen, onClose, user }) => {
   useEffect(() => {
     if (user) {
       // Fetch user's books when component mounts
-      fetch(`http://localhost:3000/dashboard/${user.uid}`)
+      fetch(`${API_URL}/dashboard/${user.uid}`)
         .then(response => response.json())
         .then(data => {
           setUserBooks(data);
@@ -114,7 +116,7 @@ const ChatBox = ({ isOpen, onClose, user }) => {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/chat", {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

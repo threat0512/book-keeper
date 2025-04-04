@@ -35,7 +35,10 @@ function Home({ user }) {
   const statuses = ["All", "Reading", "Completed", "Upcoming"];
 
   const fetchBooks = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("No user found, skipping fetch");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -49,14 +52,21 @@ function Home({ user }) {
         sortBy
       });
 
-      const response = await fetch(`${API_URL}/dashboard/${user.uid}?${queryParams}`);
+      const url = `${API_URL}/dashboard/${user.uid}?${queryParams}`;
+      console.log("Fetching books from:", url);
+
+      const response = await fetch(url);
+      console.log("Response status:", response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch books');
+        throw new Error(`Failed to fetch books: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      setBooks(data.books);
-      setCount(data.totalPages);
+      console.log("Received data:", data);
+      
+      setBooks(data.books || []);
+      setCount(data.totalPages || 0);
     } catch (error) {
       console.error("Error fetching books:", error);
       setError("Failed to load books. Please try again.");
