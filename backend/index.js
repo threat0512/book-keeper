@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configure CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://bookie-chi.vercel.app/'],
+  origin: ['http://localhost:5173', 'https://bookie-chi.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -39,28 +39,6 @@ const db = new pg.Client({
 db.connect()
   .then(() => {
     console.log('Connected to Neon PostgreSQL database');
-    // Create tables if they don't exist
-    return db.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        uid TEXT PRIMARY KEY,
-        email TEXT NOT NULL
-      );
-      
-      CREATE TABLE IF NOT EXISTS books (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        author TEXT NOT NULL,
-        review TEXT,
-        rating INTEGER,
-        cover TEXT,
-        category TEXT,
-        status TEXT,
-        uid TEXT REFERENCES users(uid) ON DELETE CASCADE
-      );
-    `);
-  })
-  .then(() => {
-    console.log('Database tables verified/created');
   })
   .catch(err => {
     console.error('Database connection/setup error:', err);
@@ -264,14 +242,6 @@ app.post("/add/:uid", async (req, res) => {
 
     // Generate cover URL if keyType and key are provided
     const cover = keyType && key ? getCover(keyType, key) : null;
-
-    // First, ensure user exists in the users table
-    const userResult = await db.query("SELECT * FROM users WHERE uid = $1", [uid]);
-    if (userResult.rows.length === 0) {
-      console.log("User not found, creating new user");
-      // User doesn't exist, create them
-      await db.query("INSERT INTO users (uid, email) VALUES ($1, $2)", [uid, 'user@example.com']);
-    }
 
     // Check if book already exists for this user
     const existingBook = await db.query(
