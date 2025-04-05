@@ -8,12 +8,14 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import InputLabel from "@mui/material/InputLabel";
 import InputAdornment from "@mui/material/InputAdornment";
 import FormControl from "@mui/material/FormControl";
-import { Button } from "@mui/material";
+import { Button, Alert } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "../firebase";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -22,44 +24,89 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  // Toggle Password Visibility
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (event) => event.preventDefault();
 
-  // Handle Email Registration
+  // 🔧 Friendly error messages for common Firebase errors
+  const getFriendlyError = (code) => {
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "This email is already registered. Try logging in instead.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/weak-password":
+        return "Password should be at least 6 characters.";
+      case "auth/popup-closed-by-user":
+        return "Google sign-up was cancelled.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
+  };
+
+  const registerUserInDb = async (email, uid) => {
+    try {
+      const response = await fetch(`${API_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, uid }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to register user in database");
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error("Backend registration error:", err);
+      throw err;
+    }
+  };
+
   const handleEmailRegister = async (event) => {
     event.preventDefault();
     if (isSubmitting) return;
 
+    setError("");
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const { user } = userCredential;
+
+      await registerUserInDb(email, user.uid);
       navigate("/dashboard");
-    } catch (error) {
-      alert(`Error: ${error.message}`);
+    } catch (err) {
+      console.error("Registration error:", err);
+      setError(getFriendlyError(err.code));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setError("");
 
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const { user } = result;
+
+      await registerUserInDb(user.email, user.uid);
       navigate("/dashboard");
-    } catch (error) {
-      alert(`Error: ${error.message}`);
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      setError(getFriendlyError(err.code));
     } finally {
       setIsSubmitting(false);
     }
@@ -87,6 +134,12 @@ export default function Register() {
             </Button>
           </div>
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           {/* Google Signup Button */}
           <button className="google-signup" onClick={handleGoogleSignIn} disabled={isSubmitting}>
             <img src="/google.png" alt="Google logo" className="google-img" />
@@ -98,7 +151,6 @@ export default function Register() {
 
             {/* Form Submission */}
             <form onSubmit={handleEmailRegister}>
-              {/* Email Input */}
               <TextField
                 sx={{ width: "100%" }}
                 margin="dense"
@@ -109,7 +161,6 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              {/* Password Input */}
               <FormControl sx={{ width: "100%", marginTop: "10px" }} required>
                 <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
                 <OutlinedInput
@@ -132,7 +183,6 @@ export default function Register() {
                 />
               </FormControl>
 
-              {/* Confirm Password Input */}
               <FormControl sx={{ width: "100%", marginTop: "10px" }} required>
                 <InputLabel htmlFor="outlined-adornment-confirm-password">Confirm Password</InputLabel>
                 <OutlinedInput
@@ -155,7 +205,6 @@ export default function Register() {
                 />
               </FormControl>
 
-              {/* Register Button */}
               <Button className="register-btn" type="submit" variant="contained" fullWidth disabled={isSubmitting}>
                 {isSubmitting ? "Creating Account..." : "Create Account"}
               </Button>

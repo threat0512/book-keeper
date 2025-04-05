@@ -1,4 +1,4 @@
-import React, { useState,useEffect  } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -9,7 +9,8 @@ import {
   Stack,
   Divider,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  CircularProgress
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -38,113 +39,166 @@ import {
 } from 'firebase/auth';
 import { useNavigate } from "react-router-dom";
 import Delete from "./Delete";
-export default function User({
-  setUser
-}) {
-  const currentUser = auth.currentUser;
 
+export default function User({ setUser }) {
+  const currentUser = auth.currentUser;
   const [email, setEmail] = useState(currentUser?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isDeleteOpen, setDelOpen] = useState(false);
-
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const navigate = useNavigate();
+
   const openDel = () => setDelOpen(true);
   const closeDel = () => setDelOpen(false);
 
-// Inside the component
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      setEmail(user.email || '');
-    }
-  });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setEmail(user.email || '');
+      }
+    });
 
-  return () => unsubscribe(); // Clean up listener
-}, []);
+    return () => unsubscribe();
+  }, []);
 
   const handleEmailUpdate = async (e) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!currentUser) {
+      setError('❌ You must be logged in to update your email.');
+      return;
+    }
 
     if (email === currentUser.email) {
       setError('❌ New email is the same as current email.');
       return;
     }
 
+    if (!currentPassword) {
+      setError('❌ Please enter your current password to update email.');
+      return;
+    }
+
+    setIsEmailLoading(true);
+    setError('');
+    setMessage('');
+
     try {
-      // Step 1: Re-authenticate
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        currentPassword
-      );
+      // Re-authenticate user
+      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
       await reauthenticateWithCredential(currentUser, credential);
-
-      // Step 2: Update email in Firebase
+      
+      // Update email
       await updateEmail(currentUser, email);
-
-      // Step 3: Send verification to new email
       await sendEmailVerification(currentUser);
-
-      // Step 4: Update in PostgreSQL
-      await fetch("http://localhost:3000/user/email", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: currentUser.uid, email }),
-      });
-
-      setMessage("✅ Email updated. Please verify your new email.");
-      setError('');
+      
+      setMessage("✅ Email updated successfully! Please check your new email for verification.");
       setCurrentPassword('');
     } catch (err) {
-      console.error(err.code, err.message);
-      setError("❌ " + err.message);
+      console.error("Email update error:", err.code, err.message);
+      
+      switch (err.code) {
+        case 'auth/requires-recent-login':
+          setError('❌ For security reasons, please re-enter your password to update email.');
+          break;
+        case 'auth/invalid-password':
+          setError('❌ The password you entered is incorrect. Please try again.');
+          break;
+        case 'auth/email-already-in-use':
+          setError('❌ This email is already registered with another account.');
+          break;
+        case 'auth/invalid-email':
+          setError('❌ Please enter a valid email address.');
+          break;
+        default:
+          setError('❌ Failed to update email: ' + err.message);
+      }
+    } finally {
+      setIsEmailLoading(false);
     }
   };
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
+    if (!currentUser) {
+      setError('❌ You must be logged in to update your password.');
+      return;
+    }
+
+    if (!currentPassword) {
+      setError('❌ Please enter your current password.');
+      return;
+    }
+
     if (password !== confirmPassword) {
-      setError("❌ Passwords do not match");
+      setError("❌ New passwords do not match. Please try again.");
       setMessage('');
       return;
     }
-  
+
+    if (password.length < 6) {
+      setError("❌ New password must be at least 6 characters long.");
+      return;
+    }
+
+    if (password === currentPassword) {
+      setError("❌ New password cannot be the same as your current password.");
+      return;
+    }
+
+    setIsPasswordLoading(true);
+    setError('');
+    setMessage('');
+
     try {
+      // Re-authenticate user first
+      const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      
+      // Update password
       await firebaseUpdatePassword(currentUser, password);
-      setMessage("✅ Password updated successfully!");
-      setError('');
+      
+      setMessage("✅ Password updated successfully! Please use your new password for future logins.");
       setPassword('');
       setConfirmPassword('');
+      setCurrentPassword('');
     } catch (err) {
       console.error("Password update error:", err.code, err.message);
-  
+
       switch (err.code) {
         case "auth/weak-password":
-          setError("❌ Password is too weak. It should be at least 6 characters.");
+          setError("❌ Password is too weak. Please use at least 6 characters with a mix of letters and numbers.");
           break;
         case "auth/requires-recent-login":
-          setError("❌ Please re-authenticate to update your password.");
+          setError("❌ For security reasons, please re-enter your current password.");
+          break;
+        case "auth/invalid-password":
+          setError("❌ The current password you entered is incorrect. Please try again.");
           break;
         case "auth/too-many-requests":
-          setError("❌ Too many attempts. Try again later.");
+          setError("❌ Too many attempts. For security reasons, please try again later.");
           break;
         default:
           setError("❌ Failed to update password: " + err.message);
-          break;
       }
-  
-      setMessage('');
+    } finally {
+      setIsPasswordLoading(false);
     }
   };
   
   const confirmDeleteAccount = async () => {
+    if (!currentUser) {
+      setError("❌ You must be logged in to delete your account.");
+      return;
+    }
+
     try {
+      setMessage("🔄 Deleting your account...");
       await fetch("http://localhost:3000/user/delete", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -153,25 +207,25 @@ useEffect(() => {
   
       await firebaseDeleteUser(currentUser);
   
-      setMessage("✅ Account deleted successfully!");
-      setUser(null); // logout local state
-      navigate("/"); // redirect
+      setMessage("✅ Your account has been successfully deleted. We're sorry to see you go!");
+      setUser(null);
+      navigate("/");
     } catch (err) {
-      setError("❌ Failed to delete account");
+      console.error("Delete account error:", err);
+      setError("❌ Failed to delete account. Please try again or contact support if the problem persists.");
     }
   };
   
-
   const signOut = async () => {
     if (!auth.currentUser) {
-        setError("You're already signed out.");
-        return;
-      }
-
+      setError("❌ You're already signed out.");
+      return;
+    }
 
     try {
+      setMessage("🔄 Signing you out...");
       await logout();
-      setMessage("✅ Signed out successfully!");
+      setMessage("✅ You've been successfully signed out. See you next time!");
       setUser(null);
       navigate("/");
     } catch (err) {
@@ -183,6 +237,9 @@ useEffect(() => {
   return (
     <Box
     className="mainBox"
+    sx={{
+      marginTop: '0px'
+    }}
     
   >
     {/* App Branding */}
@@ -234,23 +291,19 @@ useEffect(() => {
         </Alert>
       )}
 
-      {/* Email Form */}
-      <form onSubmit={handleEmailUpdate} style={{ marginBottom: '2rem' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <MailIcon sx={{ fontSize: 20, color: '#555' }} />
-          <Typography variant="subtitle1" color="text.secondary">
-            Update Email
-          </Typography>
-        </Box>
+      {/* Email Update Form */}
+      <form onSubmit={handleEmailUpdate}>
         <Stack spacing={2}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <MailIcon /> Email Settings
+          </Typography>
           <TextField
+            label="New Email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
             required
-            label="New Email"
-            variant="outlined"
           />
           <TextField
             label="Current Password"
@@ -259,11 +312,13 @@ useEffect(() => {
             onChange={(e) => setCurrentPassword(e.target.value)}
             fullWidth
             required
-            variant="outlined"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -273,114 +328,154 @@ useEffect(() => {
           <Button
             type="submit"
             variant="contained"
-            fullWidth
-            sx={{
-              backgroundColor: 'black',
-              textTransform: 'none',
-              fontSize: '1rem',
-              '&:hover': { backgroundColor: '#333' },
+            disabled={isEmailLoading}
+            sx={{ 
+              mt: 2,
+              bgcolor: 'black',
+              color: 'white',
+              '&:hover': {
+                bgcolor: '#333333'
+              },
+              '&:disabled': {
+                bgcolor: '#666666',
+                color: '#ffffff80'
+              }
             }}
           >
-            Update Email
+            {isEmailLoading ? (
+              <>
+                <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
+                Updating Email...
+              </>
+            ) : (
+              "Update Email"
+            )}
           </Button>
         </Stack>
       </form>
 
-      {/* Password Update */}
-      <form onSubmit={handlePasswordUpdate} style={{ marginBottom: '2rem' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <KeyIcon sx={{ fontSize: 20, color: '#555' }} />
-          <Typography variant="subtitle1" color="text.secondary">
-            Change Password
-          </Typography>
-        </Box>
+      <Divider sx={{ my: 4 }} />
+
+      {/* Password Update Form */}
+      <form onSubmit={handlePasswordUpdate}>
         <Stack spacing={2}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <KeyIcon /> Password Settings
+          </Typography>
           <TextField
-            type="password"
+            label="Current Password"
+            type={showPassword ? "text" : "password"}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            fullWidth
+            required
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="New Password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             fullWidth
             required
-            label="New Password"
-            variant="outlined"
           />
           <TextField
-            type="password"
+            label="Confirm New Password"
+            type={showPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             fullWidth
             required
-            label="Confirm Password"
-            variant="outlined"
           />
           <Button
             type="submit"
             variant="contained"
-            fullWidth
-            sx={{
-              backgroundColor: 'black',
-              textTransform: 'none',
-              fontSize: '1rem',
-              '&:hover': { backgroundColor: '#333' },
+            disabled={isPasswordLoading}
+            sx={{ 
+              mt: 2,
+              bgcolor: 'black',
+              color: 'white',
+              '&:hover': {
+                bgcolor: '#333333'
+              },
+              '&:disabled': {
+                bgcolor: '#666666',
+                color: '#ffffff80'
+              }
             }}
           >
-            Update Password
+            {isPasswordLoading ? (
+              <>
+                <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
+                Updating Password...
+              </>
+            ) : (
+              "Update Password"
+            )}
           </Button>
         </Stack>
       </form>
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: 4 }} />
 
-      {/* Sign Out & Delete */}
+      {/* Account Actions */}
       <Stack spacing={2}>
+        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SettingsIcon /> Account Actions
+        </Typography>
         <Button
-          onClick={signOut}
           variant="outlined"
-          fullWidth
-          startIcon={<LogoutIcon />}
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={openDel}
+          className="delete-button"
           sx={{
-            color: '#444',
-            borderColor: '#ccc',
-            textTransform: 'none',
-            fontSize: '1rem',
+            borderColor: '#d32f2f',
+            color: '#d32f2f',
             '&:hover': {
-              backgroundColor: '#f5f5f5',
-            },
+              bgcolor: '#d32f2f0a',
+              borderColor: '#d32f2f'
+            }
+          }}
+        >
+          Delete Account
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<LogoutIcon />}
+          onClick={signOut}
+          sx={{
+            borderColor: '#666666',
+            color: '#666666',
+            '&:hover': {
+              bgcolor: '#6666660a',
+              borderColor: '#666666'
+            }
           }}
         >
           Sign Out
         </Button>
-
-        <Button
-  onClick={openDel}
-  variant="outlined"
-  color="error"
-  fullWidth
-  startIcon={<DeleteIcon />}
-  sx={{
-    backgroundColor: '#ffe5e5',
-    textTransform: 'none',
-    fontSize: '1rem',
-    color: '#b30000',
-    borderColor: '#fca5a5',
-    '&:hover': {
-      backgroundColor: '#ffcaca',
-    },
-  }}
->
-  Delete Account
-</Button>
-
       </Stack>
+
+      {/* Delete Account Dialog */}
       <Delete
-  isOpen={isDeleteOpen}
-  onClose={closeDel}
-  onConfirm={confirmDeleteAccount}
-  title="Delete Account"
-  message="Are you sure you want to delete your account? This will permanently remove all your data."
-  confirmLabel="Delete Account"
-  confirmColor="red"
-/>
+        isOpen={isDeleteOpen}
+        onClose={closeDel}
+        onConfirm={confirmDeleteAccount}
+        title="Delete Account?"
+        message="This will permanently delete your account and all your data. This action cannot be undone."
+      />
 
     </Paper>
     </Box>

@@ -21,7 +21,7 @@ const Footer = () => {
 
   // Navigation handlers
   const handleStatusClick = (status) => {
-    navigate('/home', { 
+    navigate('/dashboard', { 
       state: { 
         selectedStatus: status,
         resetFilters: true // Reset existing filters before applying new one
@@ -30,7 +30,7 @@ const Footer = () => {
   };
 
   const handleCategoryClick = (category) => {
-    navigate('/home', { 
+    navigate('/dashboard', { 
       state: { 
         selectedCategory: category,
         resetFilters: true // Reset existing filters before applying new one
@@ -39,7 +39,7 @@ const Footer = () => {
   };
 
   const handleHomeClick = () => {
-    navigate('/home', { 
+    navigate('/dashboard', { 
       state: { 
         resetFilters: true // Reset all filters
       } 

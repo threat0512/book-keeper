@@ -1,5 +1,5 @@
 import "../styles/Home.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Book from "./Book";
 import { AnimatePresence } from "framer-motion";
 import { Box, Typography, IconButton, CircularProgress, TextField, InputAdornment, Paper, Stack, Container, Grid, FormControl, InputLabel, Select, MenuItem, useTheme, Fab, useMediaQuery, Alert } from "@mui/material";
@@ -30,18 +30,30 @@ function Home({ user }) {
   const [sortBy, setSortBy] = useState("rating");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [error, setError] = useState(null);
+  const [abortController, setAbortController] = useState(null);
   
   const categories = ["All", "Self-Help", "Science Fiction", "Mystery", "Romance", "Others"];
   const statuses = ["All", "Reading", "Completed", "Upcoming"];
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     if (!user) {
       console.log("No user found, skipping fetch");
+      setLoading(false);
       return;
     }
 
+    // Cancel previous request if it exists
+    if (abortController) {
+      abortController.abort();
+    }
+
+    // Create new abort controller
+    const controller = new AbortController();
+    setAbortController(controller);
+
     setLoading(true);
     setError(null);
+    
     try {
       const queryParams = new URLSearchParams({
         page,
@@ -55,33 +67,47 @@ function Home({ user }) {
       const url = `${API_URL}/dashboard/${user.uid}?${queryParams}`;
       console.log("Fetching books from:", url);
 
-      const response = await fetch(url);
-      console.log("Response status:", response.status);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch books: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch books: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
       }
 
       const data = await response.json();
       console.log("Received data:", data);
       
-      setBooks(data.books || []);
+      if (!data || !Array.isArray(data.books)) {
+        throw new Error('Invalid data format received from server');
+      }
+
+      setBooks(data.books);
       setCount(data.totalPages || 0);
     } catch (error) {
       console.error("Error fetching books:", error);
-      setError("Failed to load books. Please try again.");
+      if (error.name === 'AbortError') {
+        // Don't update error state for aborted requests
+        return;
+      }
+      setError(`Failed to load books: ${error.message}`);
+      setBooks([]);
+      setCount(0);
     } finally {
       setLoading(false);
+      setAbortController(null);
     }
-  };
-
-  useEffect(() => {
-    fetchBooks();
   }, [user, page, searchTerm, selectedCategory, selectedStatus, sortBy, isMobile]);
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
-    setPage(1); // Reset to first page when searching
+    setPage(1);
   };
 
   const handleCategoryChange = (event) => {
@@ -125,6 +151,16 @@ function Home({ user }) {
     fetchBooks();
   };
 
+  useEffect(() => {
+    fetchBooks();
+    // Cleanup function to abort any pending requests when component unmounts
+    return () => {
+      if (abortController) {
+        abortController.abort();
+      }
+    };
+  }, [fetchBooks]);
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -147,85 +183,81 @@ function Home({ user }) {
             </Typography>
           </Box>
 
-          {books.length > 0 && (
-            <>
-              <Box sx={{ mb: { xs: 3, sm: 4 }, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <TextField
-                  fullWidth
-                  placeholder="Search by title or author..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    maxWidth: "600px",
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "50px",
-                      backgroundColor: "rgba(255, 255, 255, 0.9)",
-                      transition: "all 0.3s",
-                      "&:hover": { backgroundColor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" },
-                    },
-                  }}
-                />
-              </Box>
+          <Box sx={{ mb: { xs: 3, sm: 4 }, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <TextField
+              fullWidth
+              placeholder="Search by title or author..."
+              value={searchTerm}
+              onChange={handleSearch}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                maxWidth: "600px",
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "50px",
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  transition: "all 0.3s",
+                  "&:hover": { backgroundColor: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" },
+                },
+              }}
+            />
+          </Box>
 
-              <Paper elevation={0} sx={{ 
-                p: { xs: 1, sm: 2 }, 
-                mb: { xs: 3, sm: 4 }, 
-                backgroundColor: "rgba(255, 255, 255, 0.9)", 
-                borderRadius: 2, 
-                display: "flex", 
-                flexDirection: { xs: "column", sm: "row" },
-                flexWrap: "wrap", 
-                gap: 2, 
-                alignItems: { xs: "flex-start", sm: "center" }, 
-                justifyContent: "space-between" 
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <StoriesIcon color="primary" />
-                  <Typography variant={isMobile ? "subtitle1" : "h6"} component="h2">
-                    Browse Books
-                  </Typography>
-                </Box>
-                <Box sx={{ 
-                  display: "flex", 
-                  flexDirection: { xs: "column", sm: "row" },
-                  gap: 2,
-                  width: { xs: "100%", sm: "auto" }
-                }}>
-                  <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
-                    <InputLabel>Category</InputLabel>
-                    <Select value={selectedCategory} onChange={handleCategoryChange} label="Category">
-                      {categories.map(category => (
-                        <MenuItem key={category} value={category}>{category}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select value={selectedStatus} onChange={handleStatusChange} label="Status">
-                      {statuses.map(status => (
-                        <MenuItem key={status} value={status}>{status}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
-                    <InputLabel>Sort By</InputLabel>
-                    <Select value={sortBy} onChange={handleSortChange} label="Sort By">
-                      <MenuItem value="rating"><StarIcon sx={{ mr: 1, fontSize: 18 }} /> Highest Rated</MenuItem>
-                      <MenuItem value="title">📖 Title (A-Z)</MenuItem>
-                      <MenuItem value="author">👤 Author (A-Z)</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Paper>
-            </>
-          )}
+          <Paper elevation={0} sx={{ 
+            p: { xs: 1, sm: 2 }, 
+            mb: { xs: 3, sm: 4 }, 
+            backgroundColor: "rgba(255, 255, 255, 0.9)", 
+            borderRadius: 2, 
+            display: "flex", 
+            flexDirection: { xs: "column", sm: "row" },
+            flexWrap: "wrap", 
+            gap: 2, 
+            alignItems: { xs: "flex-start", sm: "center" }, 
+            justifyContent: "space-between" 
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StoriesIcon color="primary" />
+              <Typography variant={isMobile ? "subtitle1" : "h6"} component="h2">
+                Browse Books
+              </Typography>
+            </Box>
+            <Box sx={{ 
+              display: "flex", 
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
+              width: { xs: "100%", sm: "auto" }
+            }}>
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
+                <InputLabel>Category</InputLabel>
+                <Select value={selectedCategory} onChange={handleCategoryChange} label="Category">
+                  {categories.map(category => (
+                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
+                <InputLabel>Status</InputLabel>
+                <Select value={selectedStatus} onChange={handleStatusChange} label="Status">
+                  {statuses.map(status => (
+                    <MenuItem key={status} value={status}>{status}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
+                <InputLabel>Sort By</InputLabel>
+                <Select value={sortBy} onChange={handleSortChange} label="Sort By">
+                  <MenuItem value="rating"><StarIcon sx={{ mr: 1, fontSize: 18 }} /> Highest Rated</MenuItem>
+                  <MenuItem value="title">📖 Title (A-Z)</MenuItem>
+                  <MenuItem value="author">👤 Author (A-Z)</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Paper>
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box>

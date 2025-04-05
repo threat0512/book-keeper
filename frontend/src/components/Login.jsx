@@ -1,3 +1,6 @@
+// ...imports remain unchanged
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../firebase";
 import "../styles/Register.css";
 import * as React from "react";
 import { useState } from "react";
@@ -8,54 +11,98 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import InputLabel from "@mui/material/InputLabel";
 import InputAdornment from "@mui/material/InputAdornment";
 import FormControl from "@mui/material/FormControl";
-import { Button } from "@mui/material";
+import { Button, Alert } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../firebase";
+// ...other imports remain unchanged
+import { sendPasswordResetEmail } from "firebase/auth"; // ✅ added sendPasswordResetEmail
+
 
 export default function Login() {
-  // State for managing form inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Prevents duplicate submission
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Toggle Password Visibility
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (event) => event.preventDefault();
 
-  // Handle Email Login
+  const getFriendlyError = (code) => {
+    switch (code) {
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/user-not-found":
+        return "No account found with this email.";
+      case "auth/wrong-password":
+        return "Incorrect password. Please try again.";
+      case "auth/too-many-requests":
+        return "Too many failed attempts. Please wait and try again later.";
+      case "auth/popup-closed-by-user":
+        return "Google sign-in was cancelled.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
+  };
+
   const handleEmailLogin = async (event) => {
     event.preventDefault();
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setMessage('');
+    setError('');
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      setMessage("✅ Signed in successfully!");
       navigate("/dashboard");
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      console.error("Login error:", error);
+      setError(getFriendlyError(error.code));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle Google Login
   const handleGoogleSignIn = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setMessage('');
+    setError('');
 
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
+      setMessage("✅ Signed in with Google!");
       navigate("/dashboard");
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      
+      console.error("Google sign-in error:", error);
+      setError(getFriendlyError(error.code));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // ✅ Forgot Password Handler
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setMessage('');
+      setError("Please enter your email above to receive a reset link.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setError('');
+      setMessage("📧 Verification code sent to your registered email.");
+    } catch (error) {
+      setMessage('');
+      console.error("Forgot password error:", error);
+      setError(getFriendlyError(error.code));
     }
   };
 
@@ -81,7 +128,6 @@ export default function Login() {
             </Button>
           </div>
 
-          {/* Google Signup Button */}
           <button className="google-signup" onClick={handleGoogleSignIn} disabled={isSubmitting}>
             <img src="/google.png" alt="Google logo" className="google-img" />
             Sign in with Google
@@ -90,9 +136,18 @@ export default function Login() {
           <Box>
             <div className="or">or</div>
 
-            {/* Form Handles Submission Properly */}
+            {message && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {message}
+              </Alert>
+            )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
             <form onSubmit={handleEmailLogin}>
-              {/* Email Input */}
               <TextField
                 sx={{ width: "100%" }}
                 margin="dense"
@@ -103,7 +158,6 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              {/* Password Input */}
               <FormControl sx={{ width: "100%", marginTop: "10px" }} required>
                 <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
                 <OutlinedInput
@@ -126,12 +180,12 @@ export default function Login() {
                 />
               </FormControl>
 
-              {/* Forgot Password */}
               <div className="forgot-password">
-                <Button className="forgot-password-link">Forgot Password?</Button>
+                <Button className="forgot-password-link" onClick={handleForgotPassword}>
+                  Forgot Password?
+                </Button>
               </div>
 
-              {/* Submit Button */}
               <Button className="login-btn" type="submit" variant="contained" fullWidth disabled={isSubmitting}>
                 {isSubmitting ? "Signing In..." : "Sign In"}
               </Button>

@@ -270,7 +270,7 @@ export default function Book(props) {
       />
       <Delete
         isOpen={isDeleteOpen}
-        onClose={handleDelete}
+        onClose={closeDel}
         bookId={props.id}
         userid={props.user}
         onDelete={props.onDelete}

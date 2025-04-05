@@ -1,25 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send as SendIcon, Close as CloseIcon } from '@mui/icons-material';
-import { Box, IconButton, TextField, Typography, Paper, InputAdornment } from '@mui/material';
+import { Send as SendIcon, Close as CloseIcon, SmartToy as BotIcon } from '@mui/icons-material';
+import { Box, IconButton, TextField, Typography, Paper, InputAdornment, Avatar, CircularProgress } from '@mui/material';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const newUserMessage = {
-  id: '1',
-  text: "Welcome to bibble! 📚 I can recommend popular books across different genres. What interests you?",
-  sender: 'bot',
-  timestamp: new Date(),
-};
-
-const returningUserMessage = {
-  id: '1',
-  text: "Welcome back! 📚 I'll recommend books based on your reading history. What would you like to explore?",
-  sender: 'bot',
-  timestamp: new Date(),
-};
-
 const ChatBox = ({ isOpen, onClose, user }) => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([{
+    id: `bot-${Date.now()}-welcome`,
+    text: "Welcome to bibble! 📚 I can recommend books based on your interests. What kind of books do you enjoy?",
+    sender: 'bot',
+    timestamp: new Date(),
+  }]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [userBooks, setUserBooks] = useState([]);
@@ -34,21 +25,44 @@ const ChatBox = ({ isOpen, onClose, user }) => {
   }, [messages]);
 
   useEffect(() => {
-    if (user) {
-      // Fetch user's books when component mounts
+    if (user && isOpen) {
+      // Reset messages when chat is opened
+      const initialMessageId = Date.now();
+      setMessages([{
+        id: `bot-${initialMessageId}-welcome`,
+        text: "Welcome to bibble! 📚 I can recommend books based on your interests. What kind of books do you enjoy?",
+        sender: 'bot',
+        timestamp: new Date(),
+      }]);
+      
+      // Fetch user's books
       fetch(`${API_URL}/dashboard/${user.uid}`)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch books');
+          return response.json();
+        })
         .then(data => {
-          setUserBooks(data);
-          // Set initial message based on whether user has books
-          setMessages([data.length === 0 ? newUserMessage : returningUserMessage]);
+          if (data.books && data.books.length > 0) {
+            setUserBooks(data.books);
+            setMessages(prev => [...prev, {
+              id: `bot-${Date.now()}-returning`,
+              text: "I see you have some books in your library! Would you like recommendations based on your current reads?",
+              sender: 'bot',
+              timestamp: new Date()
+            }]);
+          }
         })
         .catch(error => {
           console.error('Error fetching user books:', error);
-          setMessages([newUserMessage]); // Default to new user message if there's an error
+          setMessages(prev => [...prev, {
+            id: `bot-${Date.now()}-error`,
+            text: "I'm having trouble accessing your book library. But I can still help you discover new books!",
+            sender: 'bot',
+            timestamp: new Date()
+          }]);
         });
     }
-  }, [user]);
+  }, [user, isOpen]);
 
   const getBotResponse = (userMessage) => {
     const lowerMessage = userMessage.toLowerCase();
@@ -100,43 +114,91 @@ const ChatBox = ({ isOpen, onClose, user }) => {
   const handleSend = async () => {
     if (!input.trim() || !user) return;
 
-    const userMessage = input.trim();
-    setInput("");
-    setMessages((prev) => [...prev, { text: userMessage, sender: "user" }]);
+    const messageId = Date.now();
+    const userMessage = {
+      id: `user-${messageId}-msg`,
+      text: input.trim(),
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setInput('');
+    setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Check for predefined responses
-    const botResponse = getBotResponse(userMessage);
-    if (botResponse) {
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { text: botResponse, sender: "bot" }]);
-        setIsTyping(false);
-      }, 1000);
-      return;
-    }
-
     try {
-      const response = await fetch(`${API_URL}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          uid: user.uid,
-          userBooks: userBooks,
-          isNewUser: userBooks.length === 0,
-        }),
+      // First try the predefined responses
+      const quickResponse = getBotResponse(userMessage.text);
+      if (quickResponse) {
+        setTimeout(() => {
+          const botResponse = {
+            id: `bot-${Date.now()}-quick`,
+            text: quickResponse,
+            sender: 'bot',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, botResponse]);
+          setIsTyping(false);
+        }, 1000);
+        return;
+      }
+
+      console.log('Sending chat request:', {
+        message: userMessage.text,
+        uid: user.uid,
+        booksCount: userBooks?.length
       });
 
-      const data = await response.json();
-      setMessages((prev) => [...prev, { text: data.response, sender: "bot" }]);
+      // If no predefined response, call the API
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.text,
+          uid: user.uid,
+          userBooks: userBooks,
+        })
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (error) {
+        throw new Error('Invalid response format from server');
+      }
+
+      console.log('Received chat response:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `Server error: ${response.status}`);
+      }
+
+      if (!data || (typeof data.response !== 'string' && typeof data.message !== 'string')) {
+        console.error('Invalid response data:', data);
+        throw new Error('Invalid response format from server');
+      }
+
+      const botResponse = {
+        id: `bot-${Date.now()}-api`,
+        text: data.response || data.message,
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botResponse]);
+
     } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        { text: "I'm having trouble processing your request. Could you please try again or rephrase your question?", sender: "bot" },
-      ]);
+      console.error('Chat error:', error);
+      const errorResponse = {
+        id: `bot-${Date.now()}-error`,
+        text: error.message === "Failed to fetch" || error.message.includes("timeout") 
+          ? "I'm having trouble connecting to the server. Please check your internet connection and try again."
+          : `I'm having trouble processing your request: ${error.message}`,
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsTyping(false);
     }
@@ -217,13 +279,26 @@ const ChatBox = ({ isOpen, onClose, user }) => {
             sx={{
               display: 'flex',
               justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+              gap: 1,
             }}
           >
+            {message.sender === 'bot' && (
+              <Avatar 
+                key={`avatar-${message.id}`}
+                sx={{ 
+                  bgcolor: '#3f51b5', 
+                  width: 32, 
+                  height: 32 
+                }}
+              >
+                <BotIcon sx={{ fontSize: 20 }} />
+              </Avatar>
+            )}
             <Paper
               elevation={0}
               sx={{
                 p: 1.5,
-                maxWidth: '80%',
+                maxWidth: '75%',
                 bgcolor: message.sender === 'user' ? '#3f51b5' : '#F0F0F0',
                 borderRadius: message.sender === 'user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
               }}
@@ -233,6 +308,7 @@ const ChatBox = ({ isOpen, onClose, user }) => {
                 sx={{
                   color: message.sender === 'user' ? 'white' : 'text.primary',
                   lineHeight: 1.4,
+                  whiteSpace: 'pre-line',
                 }}
               >
                 {message.text}
@@ -241,10 +317,22 @@ const ChatBox = ({ isOpen, onClose, user }) => {
           </Box>
         ))}
         {isTyping && (
-          <Box sx={{ display: 'flex', gap: 0.5, p: 1 }}>
-            <Box sx={{ width: 6, height: 6, bgcolor: '#3f51b5', borderRadius: '50%', animation: 'bounce 0.5s ease infinite', animationDelay: '0s' }} />
-            <Box sx={{ width: 6, height: 6, bgcolor: '#3f51b5', borderRadius: '50%', animation: 'bounce 0.5s ease infinite', animationDelay: '0.1s' }} />
-            <Box sx={{ width: 6, height: 6, bgcolor: '#3f51b5', borderRadius: '50%', animation: 'bounce 0.5s ease infinite', animationDelay: '0.2s' }} />
+          <Box 
+            key="typing-indicator"
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1 
+            }}
+          >
+            <Avatar sx={{ bgcolor: '#3f51b5', width: 32, height: 32 }}>
+              <BotIcon sx={{ fontSize: 20 }} />
+            </Avatar>
+            <Box sx={{ display: 'flex', gap: 0.5, p: 1 }}>
+              <CircularProgress size={8} sx={{ color: '#3f51b5' }} />
+              <CircularProgress size={8} sx={{ color: '#3f51b5' }} />
+              <CircularProgress size={8} sx={{ color: '#3f51b5' }} />
+            </Box>
           </Box>
         )}
         <div ref={messagesEndRef} />

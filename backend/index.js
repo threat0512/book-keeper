@@ -18,9 +18,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configure CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://bookie-chi.vercel.app'],
+  origin: ['http://localhost:5173', 'https://book-keeper-frontend.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
 }));
 
@@ -75,9 +75,26 @@ app.get("/dashboard/:uid", async (req, res) => {
     
     console.log("Dashboard request for user:", uid);
     console.log("Query params:", { page, limit, search, category, status, sortBy });
+
+    // Validate parameters
+    if (!uid) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    // Validate and convert pagination parameters
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ error: "Invalid page number" });
+    }
+    
+    if (isNaN(limitNum) || limitNum < 1) {
+      return res.status(400).json({ error: "Invalid limit number" });
+    }
     
     // Calculate offset for pagination
-    const offset = (page - 1) * limit;
+    const offset = (pageNum - 1) * limitNum;
 
     // Build base query
     let query = "SELECT * FROM books WHERE uid = $1";
@@ -108,10 +125,10 @@ app.get("/dashboard/:uid", async (req, res) => {
     // Add sorting
     switch (sortBy) {
       case "title":
-        query += ` ORDER BY name ASC`;
+        query += ` ORDER BY name ASC NULLS LAST`;
         break;
       case "author":
-        query += ` ORDER BY author ASC`;
+        query += ` ORDER BY author ASC NULLS LAST`;
         break;
       case "rating":
       default:
@@ -121,14 +138,14 @@ app.get("/dashboard/:uid", async (req, res) => {
 
     // Add pagination
     query += ` LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
-    queryParams.push(limit, offset);
+    queryParams.push(limitNum, offset);
 
     console.log("Executing query:", query);
     console.log("Query params:", queryParams);
 
     // Execute main query
     const result = await db.query(query, queryParams);
-    console.log("Query result:", result.rows);
+    console.log("Query result count:", result.rows.length);
 
     // Get total count for pagination
     let countQuery = "SELECT COUNT(*) FROM books WHERE uid = $1";
@@ -159,18 +176,27 @@ app.get("/dashboard/:uid", async (req, res) => {
     console.log("Total count:", totalCount);
 
     const response = {
-      books: result.rows,
+      books: result.rows || [],
       totalCount,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalCount / limit)
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalCount / limitNum),
+      limit: limitNum
     };
 
-    console.log("Sending response:", response);
+    console.log("Sending response:", {
+      ...response,
+      books: `${response.books.length} books`
+    });
+    
     res.json(response);
 
   } catch (error) {
     console.error("Database error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 app.get("/books/count/:uid", async (req, res) => {
@@ -274,6 +300,7 @@ app.post("/add/:uid", async (req, res) => {
 app.post("/register", async (req, res) => {
   const { email, uid } = req.body;
   const result = await db.query(`SELECT * FROM users WHERE uid=$1`, [uid]);
+  console.log(result.rows);
   if (result.rows.length > 0) {
     return res
       .status(409)
@@ -355,38 +382,64 @@ const getUserBooks = async (uid) => {
 // Chat endpoint
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, uid, userBooks, isNewUser } = req.body;
+    console.log("Chat request received:", {
+      messageLength: req.body.message?.length,
+      uid: req.body.uid,
+      booksCount: req.body.userBooks?.length
+    });
 
-    let context = "";
-    if (isNewUser) {
-      context = "You are a book recommendation assistant for a new user. ";
-      context += "Keep responses brief and concise. ";
-      context += "For each recommendation, just mention the book title, author, and one key reason why it's worth reading. ";
-      context += "Limit to 2-3 recommendations.";
-    } else {
-      context = "You are a book recommendation assistant for an existing user. ";
-      context += "Here are their current books:\n";
+    const { message, uid, userBooks } = req.body;
+
+    if (!message) {
+      throw new Error("Message is required");
+    }
+
+    let context = "You are a book recommendation assistant. ";
+    
+    if (userBooks && userBooks.length > 0) {
+      context += "Here are the user's current books:\n";
       userBooks.forEach(book => {
         context += `- ${book.name} by ${book.author} (${book.category}, Rating: ${book.rating})\n`;
       });
-      context += "\nKeep responses brief and concise. ";
-      context += "For each recommendation, just mention the book title, author, and one key reason why it matches their interests. ";
-      context += "Limit to 2-3 recommendations.";
+      context += "\nBased on these preferences, ";
     }
+    
+    context += "Keep responses brief and concise. ";
+    context += "For each recommendation, just mention the book title, author, and one key reason why it's worth reading. ";
+    context += "Limit to 2-3 recommendations.";
 
     const prompt = `${context}\n\nUser message: ${message}\n\nProvide brief book recommendations.`;
+    
+    console.log("Sending prompt to Gemini:", prompt);
 
     const result = await model.generateContent(prompt);
+    console.log("Received response from Gemini");
+    
     const response = await result.response;
     const text = response.text();
+    
+    console.log("Processed response:", {
+      responseLength: text.length,
+      firstFewChars: text.substring(0, 50)
+    });
 
     res.json({
-      message: text,
+      response: text,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error("Chat error:", error);
-    res.status(500).json({ error: "Failed to process chat message" });
+    console.error("Chat error details:", {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // Send a more detailed error response
+    res.status(500).json({ 
+      error: "Failed to process chat message",
+      details: error.message,
+      type: error.name
+    });
   }
 });
 

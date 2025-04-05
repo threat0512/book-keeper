@@ -7,6 +7,7 @@ import Home from "./components/Home";
 import LandingPage from "./components/LandingPage";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import User from "./components/User";
 import { ThemeProvider, createTheme } from "@mui/material";
 
 const theme = createTheme({
@@ -43,7 +44,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Router>
-        {user && <Header user={user} />}
+        {user && <Header user={user} onLogout={() => setUser(null)} />}
         <Routes>
           <Route
             path="/"
@@ -60,6 +61,10 @@ function App() {
           <Route
             path="/dashboard"
             element={user ? <Home user={user} /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/user"
+            element={user ? <User setUser={setUser} /> : <Navigate to="/" />}
           />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
