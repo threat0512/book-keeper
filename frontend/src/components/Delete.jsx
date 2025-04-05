@@ -15,7 +15,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
-
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 export default function Delete({
   isOpen,
   onClose,
@@ -30,11 +30,11 @@ export default function Delete({
 }) {
   const handleBookDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/delete/${userid}/${bookId}`, {
+      const response = await fetch(`${API_URL}/delete/${userid}/${bookId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });
-
+  
       if (response.status === 409) {
         alert("❌ This book does not exist in the database!");
       } else if (response.ok) {
@@ -49,6 +49,7 @@ export default function Delete({
       console.error("❌ Error deleting book:", error);
     }
   };
+  
 
   const handleConfirm = () => {
     if (bookId && userid) {

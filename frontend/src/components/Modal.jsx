@@ -300,7 +300,7 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
 
           {/* Key Input */}
           <TextField
-            required
+            
             margin="dense"
             name="key"
             label="Key"
@@ -308,7 +308,7 @@ const Modal = ({ isOpen, onClose, isEdit, bookData, userid, onBookUpdated }) => 
             variant="outlined"
             value={formData.key}
             onChange={handleChange}
-            disabled={isEdit} // Prevent changing key when editing
+            // disabled={isEdit} // Prevent changing key when editing
           />
         </DialogContent>
 

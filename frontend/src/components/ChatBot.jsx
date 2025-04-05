@@ -5,12 +5,7 @@ import { Box, IconButton, TextField, Typography, Paper, InputAdornment, Avatar, 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const ChatBox = ({ isOpen, onClose, user }) => {
-  const [messages, setMessages] = useState([{
-    id: `bot-${Date.now()}-welcome`,
-    text: "Welcome to bibble! 📚 I can recommend books based on your interests. What kind of books do you enjoy?",
-    sender: 'bot',
-    timestamp: new Date(),
-  }]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [userBooks, setUserBooks] = useState([]);
