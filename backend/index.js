@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configure CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://book-keeper-frontend.vercel.app'],
+  origin: ['http://localhost:5173', 'https://bookie-chi.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
