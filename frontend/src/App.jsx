@@ -9,7 +9,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import User from "./components/User";
 import { ThemeProvider, createTheme } from "@mui/material";
-
+import { Analytics } from "@vercel/analytics/react"
 const theme = createTheme({
   palette: {
     primary: {
@@ -69,6 +69,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
+      <Analytics />
     </ThemeProvider>
   );
 }
